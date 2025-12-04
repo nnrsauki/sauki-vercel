@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+  <title>Sauki Data Links</title>
+  <script src="https://checkout.flutterwave.com/v3.js"></script>
+  
+  <style>
+    /* iOS Design System */
+    :root { --primary: #000; --bg: #f2f2f7; --white: #fff; --blue: #007AFF; --green: #34C759; --border: #c6c6c8; }
+    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); margin: 0; padding-top: 60px; color: #1c1c1e; }
+    
+    .navbar { position: fixed; top: 0; left: 0; right: 0; height: 60px; background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; padding: 0 20px; z-index: 1000; }
+    .nav-logo { font-weight: 700; font-size: 1.1rem; color: #000; text-decoration: none; }
+    .nav-links a { color: var(--blue); text-decoration: none; font-size: 0.9rem; margin-left: 15px; cursor: pointer; }
+
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .hero { text-align: center; margin-bottom: 30px; }
+    .hero h1 { margin-bottom: 5px; font-size: 28px; }
+    .hero p { color: #8e8e93; font-size: 15px; }
+
+    .grid { display: grid; gap: 15px; }
+    .card { background: var(--white); padding: 20px; border-radius: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); transition: 0.2s; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+    .card:active { transform: scale(0.98); background: #e5e5ea; }
+    .card-icon { width: 40px; height: 40px; background: #f2f2f7; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-right: 15px; font-size: 1.2rem; }
+    
+    .btn { background: var(--blue); color: white; border: none; padding: 16px; width: 100%; border-radius: 14px; font-size: 16px; font-weight: 600; margin-top: 15px; cursor: pointer; }
+    .btn-green { background: var(--green); }
+    .input { width: 100%; padding: 16px; background: #fff; border: 1px solid var(--border); border-radius: 12px; font-size: 16px; margin-bottom: 10px; box-sizing: border-box; }
+
+    /* Modals */
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 2000; display: none; align-items: flex-end; }
+    .modal.active { display: flex; }
+    .sheet { background: #fff; width: 100%; max-width: 600px; margin: 0 auto; border-radius: 20px 20px 0 0; padding: 25px; animation: slideUp 0.3s; max-height: 90vh; overflow-y: auto; }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+    .spinner { width: 24px; height: 24px; border: 3px solid #ddd; border-top-color: var(--blue); border-radius: 50%; animation: spin 1s infinite; margin: 0 auto; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="#" class="nav-logo">Sauki Data</a>
+  <div class="nav-links">
+    <a onclick="document.getElementById('contact-section').scrollIntoView({behavior: 'smooth'})">Contact</a>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="hero">
+    <h1>Buy Cheap Data</h1>
+    <p>Automated Instant Delivery</p>
+  </div>
+
+  <div class="grid">
+    <!-- Network Cards -->
+    <div class="card" onclick="fetchPlans('mtn')">
+      <div style="display:flex; align-items:center;">
+        <div class="card-icon" style="color:#FFcc00; background:#FFFBE6;"><b>M</b></div>
+        <div><b>MTN Data</b><br><small style="color:#8e8e93">SME & Gifting</small></div>
+      </div>
+      <span style="color:#c7c7cc">›</span>
+    </div>
+
+    <div class="card" onclick="fetchPlans('glo')">
+      <div style="display:flex; align-items:center;">
+        <div class="card-icon" style="color:#34C759; background:#E6F9EB;"><b>G</b></div>
+        <div><b>Glo Data</b><br><small style="color:#8e8e93">Corporate</small></div>
+      </div>
+      <span style="color:#c7c7cc">›</span>
+    </div>
+
+    <div class="card" onclick="fetchPlans('airtel')">
+      <div style="display:flex; align-items:center;">
+        <div class="card-icon" style="color:#FF3B30; background:#FFE6E6;"><b>A</b></div>
+        <div><b>Airtel Data</b><br><small style="color:#8e8e93">Best Offers</small></div>
+      </div>
+      <span style="color:#c7c7cc">›</span>
+    </div>
+
+    <!-- Giveaway -->
+    <div class="card" style="background:#EBF3FF; border:1px solid #007AFF;" onclick="openGiveaway()">
+      <div style="display:flex; align-items:center;">
+        <div class="card-icon" style="background:#fff; color:#007AFF">🎁</div>
+        <div style="color:#007AFF"><b>Giveaway</b><br><small>Win Free Data</small></div>
+      </div>
+      <span style="color:#007AFF">›</span>
+    </div>
+  </div>
+
+  <!-- Contact & Subscribe -->
+  <div class="grid" id="contact-section" style="margin-top: 40px;">
+    <h3 style="margin-bottom: 5px; padding-left: 5px;">Support</h3>
+    
+    <div class="card" onclick="window.open('https://wa.me/2348164135836')">
+      <div style="display:flex; align-items:center;">
+        <div class="card-icon">📞</div>
+        <div><b>WhatsApp</b><br><small>08164135836</small></div>
+      </div>
+    </div>
+
+    <div class="card" onclick="window.open('https://mail.google.com/mail/?view=cm&fs=1&to=saukidatalinks@gmail.com')">
+      <div style="display:flex; align-items:center;">
+        <div class="card-icon">✉️</div>
+        <div><b>Email Us</b><br><small style="font-weight:500;">saukidatalinks@gmail.com</small></div>
+      </div>
+    </div>
+
+    <div class="card" onclick="subscribe()">
+      <div style="display:flex; align-items:center;">
+        <div class="card-icon">🔔</div>
+        <div><b>Subscribe</b><br><small>Get Updates via WhatsApp</small></div>
+      </div>
+    </div>
+  </div>
+  
+  <p style="text-align:center; color:#8e8e93; margin-top:40px; font-size:12px;">&copy; 2025 Sauki Data Links</p>
+</div>
+
+<!-- Modal Structure -->
+<div class="modal" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="sheet" id="sheet-content"></div>
+</div>
+
+<script>
+  // CONFIG
+  const FLW_PUBLIC_KEY = "FLWPUBK-6f70b3b654f142ff792f97ec780be79f-X";
+  const ADMIN_WHATSAPP = "2348164135836";
+  
+  let selected = {};
+
+  // 1. Fetch Plans from DB
+  async function fetchPlans(network) {
+    showSheet(`<div style="text-align:center; padding:40px"><div class="spinner"></div><p>Loading Plans...</p></div>`);
+    
+    try {
+      const res = await fetch(`/api/plans?network=${network}`);
+      const plans = await res.json();
+      
+      if(plans.length === 0) {
+        showSheet(`<h3>${network.toUpperCase()}</h3><p>No plans available. <a href="https://wa.me/${ADMIN_WHATSAPP}" style="color:blue">Contact Admin</a></p>`);
+        return;
+      }
+
+      const list = plans.map(p => `
+        <div onclick="selectPlan('${p.id}', ${p.price}, '${p.name}', '${network}')" 
+             style="padding:15px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center; cursor:pointer">
+          <span style="font-size:16px;">${p.name}</span>
+          <span style="font-weight:600; background:#f2f2f7; padding:5px 10px; border-radius:8px;">₦${p.price}</span>
+        </div>
+      `).join('');
+      
+      showSheet(`
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+          <h2 style="margin:0">${network.toUpperCase()} Plans</h2>
+          <button onclick="closeModal()" style="border:none; background:none; font-size:24px">&times;</button>
+        </div>
+        ${list}
+      `);
+    } catch(e) {
+      showSheet(`<p style="color:red; text-align:center">Failed to load plans. Please check your connection.</p>`);
+    }
+  }
+
+  function selectPlan(id, price, name, network) {
+    selected = { id, price, name, network };
+    showSheet(`
+      <h3>Confirm Order</h3>
+      <p style="color:#666; margin-bottom:20px;">${network.toUpperCase()} ${name} - ₦${price}</p>
+      
+      <input class="input" id="c-name" placeholder="Your Name">
+      <input class="input" type="tel" id="c-phone" placeholder="Beneficiary Phone Number">
+      
+      <div style="display:flex; gap:10px; align-items:center; margin:15px 0;">
+        <input type="checkbox" id="c-ported" style="width:20px; height:20px">
+        <label for="c-ported">Is this number ported?</label>
+      </div>
+
+      <button class="btn btn-green" onclick="initiatePay()">Pay ₦${price}</button>
+    `);
+  }
+
+  function initiatePay() {
+    const name = document.getElementById('c-name').value;
+    const phone = document.getElementById('c-phone').value;
+    const ported = document.getElementById('c-ported').checked;
+
+    if(!name || !phone) return alert("Please fill all fields");
+
+    selected.phone = phone.replace(/\s/g,'');
+    selected.name = name;
+    selected.ported = ported;
+
+    closeModal();
+
+    // Specific check for Airtel (If Amigo API doesn't support it yet)
+    if(selected.network === 'airtel') {
+        const msg = `Hello, I paid for Airtel Data but API is manual.\nName: ${name}\nPlan: ${selected.name}\nPhone: ${selected.phone}`;
+        // We still let them pay via Flutterwave, but the backend handles it.
+        // If backend fails for Airtel, user contacts admin.
+    }
+
+    FlutterwaveCheckout({
+      public_key: FLW_PUBLIC_KEY,
+      tx_ref: "SAUKI-" + Date.now(),
+      amount: selected.price,
+      currency: "NGN",
+      payment_options: "banktransfer",
+      customer: { email: "saukidatalinks@gmail.com", phone_number: selected.phone, name: selected.name },
+      customizations: { title: "Abdullahi Adam Usman", logo: "https://ordersauki.vercel.app/logo.png" },
+      callback: function(data) {
+        verifyOrder(data.transaction_id);
+      }
+    });
+  }
+
+  async function verifyOrder(txId) {
+    showSheet(`<div style="text-align:center; padding:40px"><div class="spinner"></div><h3>Verifying...</h3><p>Sending Data...</p></div>`);
+    
+    try {
+      const res = await fetch('/api/purchase', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          transaction_id: txId,
+          plan_id: selected.id,
+          mobile_number: selected.phone,
+          network: selected.network,
+          ported: selected.ported
+        })
+      });
+      const data = await res.json();
+      
+      if(data.success) {
+        showSheet(`<div style="text-align:center; color:green; padding:20px;"><h1>Success!</h1><p>${data.message}</p><button class="btn" onclick="closeModal()">Done</button></div>`);
+      } else {
+        // Error handling
+        showSheet(`
+            <div style="text-align:center; color:red; padding:20px;">
+                <h3>Transaction Note</h3>
+                <p>${data.error}</p>
+                <button class="btn" onclick="window.open('https://wa.me/${ADMIN_WHATSAPP}?text=Order Failed ID: ${txId}')">Contact Admin</button>
+            </div>
+        `);
+      }
+    } catch(e) {
+      showSheet(`<p>Network Error. Transaction ID: ${txId}</p>`);
+    }
+  }
+
+  // --- Utilities ---
+  function subscribe() { 
+      const msg = "Hello Sauki Data Links, I want to subscribe for updates.";
+      window.location.href = `https://wa.me/${ADMIN_WHATSAPP}?text=${encodeURIComponent(msg)}`; 
+  }
+  
+  function openGiveaway() {
+    showSheet(`
+      <h3>🎁 Data Giveaway</h3>
+      <input class="input" id="g-phone" placeholder="Your Phone Number">
+      <input class="input" id="g-key" placeholder="Giveaway Key (e.g. SAUKI2025)">
+      <select class="input" id="g-net"><option>MTN</option><option>Glo</option><option>Airtel</option></select>
+      <button class="btn" onclick="submitGiveaway()">Submit Entry via WhatsApp</button>
+    `);
+  }
+
+  function submitGiveaway() {
+    const p = document.getElementById('g-phone').value;
+    const k = document.getElementById('g-key').value;
+    const n = document.getElementById('g-net').value;
+    if(!p || !k) return alert("Fill all fields");
+    
+    const msg = `*Giveaway Entry* 🎁\n\nPhone: ${p}\nNetwork: ${n}\nKey: ${k}`;
+    window.location.href = `https://wa.me/${ADMIN_WHATSAPP}?text=${encodeURIComponent(msg)}`;
+  }
+
+  function showSheet(html) { document.getElementById('sheet-content').innerHTML = html; document.getElementById('modal').classList.add('active'); }
+  function closeModal() { document.getElementById('modal').classList.remove('active'); }
+</script>
+</body>
+</html>
+
+
+          
