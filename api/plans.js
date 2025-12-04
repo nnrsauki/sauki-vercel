@@ -1,4 +1,6 @@
-const { Client } = require('pg');
+import pg from 'pg';
+const { Client } = pg;
+
 const CONNECTION_STRING = process.env.POSTGRES_URL;
 const ADMIN_AUTH = 'Basic ' + Buffer.from("AbdallahSauki:Abdallah@2025").toString('base64');
 
