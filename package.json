@@ -1,0 +1,9 @@
+{
+  "name": "sauki-backend",
+  "version": "1.0.0",
+  "dependencies": {
+    "node-fetch": "^2.6.9",
+    "pg": "^8.10.0",
+    "https-proxy-agent": "^5.0.1"
+  }
+}
