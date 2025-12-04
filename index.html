@@ -3,141 +3,225 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+  <meta name="description" content="Sauki Data Links - Cheapest and Fastest Data in Nigeria.">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <title>Sauki Data Links</title>
+  <!-- Flutterwave Script -->
   <script src="https://checkout.flutterwave.com/v3.js"></script>
   
   <style>
     /* iOS Design System */
-    :root { --primary: #000; --bg: #f2f2f7; --white: #fff; --blue: #007AFF; --green: #34C759; --border: #c6c6c8; }
-    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); margin: 0; padding-top: 60px; color: #1c1c1e; }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { 
+      --primary: #000; 
+      --bg: #f2f2f7; 
+      --white: #fff; 
+      --blue: #007AFF; 
+      --green: #34C759; 
+      --border: #c6c6c8;
+      --wrapper-max-width: 480px; /* Enforce Mobile Width */
+    }
     
-    .navbar { position: fixed; top: 0; left: 0; right: 0; height: 60px; background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; padding: 0 20px; z-index: 1000; }
-    .nav-logo { font-weight: 700; font-size: 1.1rem; color: #000; text-decoration: none; }
-    .nav-links a { color: var(--blue); text-decoration: none; font-size: 0.9rem; margin-left: 15px; cursor: pointer; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; 
+      background: #e5e5e5; /* Darker bg for desktop context */
+      margin: 0; 
+      color: #1c1c1e; 
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+    }
 
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .hero { text-align: center; margin-bottom: 30px; }
-    .hero h1 { margin-bottom: 5px; font-size: 28px; }
+    /* Mobile Wrapper - Makes it look like an app */
+    .mobile-wrapper {
+      width: 100%;
+      max-width: var(--wrapper-max-width);
+      background: var(--bg);
+      min-height: 100vh;
+      position: relative;
+      padding-top: 60px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.1);
+      overflow-x: hidden;
+    }
+
+    /* Navigation */
+    .navbar { 
+      position: absolute; /* Relative to wrapper */
+      top: 0; left: 0; right: 0; 
+      height: 60px; 
+      background: rgba(255,255,255,0.9); 
+      backdrop-filter: blur(10px); 
+      border-bottom: 1px solid var(--border); 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      padding: 0 20px; 
+      z-index: 1000; 
+    }
+    .nav-logo { font-weight: 700; font-size: 1.1rem; color: #000; text-decoration: none; }
+    .nav-links a { color: var(--blue); text-decoration: none; font-size: 0.95rem; font-weight: 500; cursor: pointer; }
+
+    .container { padding: 20px; }
+    .hero { text-align: center; margin-bottom: 30px; margin-top: 10px; }
+    .hero h1 { margin-bottom: 5px; font-size: 28px; letter-spacing: -0.5px; }
     .hero p { color: #8e8e93; font-size: 15px; }
 
-    .grid { display: grid; gap: 15px; }
-    .card { background: var(--white); padding: 20px; border-radius: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); transition: 0.2s; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-    .card:active { transform: scale(0.98); background: #e5e5ea; }
-    .card-icon { width: 40px; height: 40px; background: #f2f2f7; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-right: 15px; font-size: 1.2rem; }
+    /* Cards */
+    .grid { display: grid; gap: 16px; }
+    .card { 
+      background: var(--white); 
+      padding: 20px; 
+      border-radius: 18px; 
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05); 
+      transition: 0.2s; 
+      cursor: pointer; 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      -webkit-tap-highlight-color: transparent;
+    }
+    .card:active { transform: scale(0.97); background: #f2f2f7; }
+    .card-icon { width: 44px; height: 44px; background: #f2f2f7; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-right: 15px; font-size: 1.3rem; }
     
-    .btn { background: var(--blue); color: white; border: none; padding: 16px; width: 100%; border-radius: 14px; font-size: 16px; font-weight: 600; margin-top: 15px; cursor: pointer; }
+    /* Buttons & Inputs */
+    .btn { background: var(--blue); color: white; border: none; padding: 18px; width: 100%; border-radius: 16px; font-size: 17px; font-weight: 600; margin-top: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn:active { opacity: 0.8; }
     .btn-green { background: var(--green); }
-    .input { width: 100%; padding: 16px; background: #fff; border: 1px solid var(--border); border-radius: 12px; font-size: 16px; margin-bottom: 10px; box-sizing: border-box; }
+    
+    .input { 
+      width: 100%; padding: 16px; 
+      background: #fff; border: 1px solid var(--border); 
+      border-radius: 12px; font-size: 16px; margin-bottom: 12px; 
+      box-sizing: border-box; 
+      appearance: none; -webkit-appearance: none;
+    }
+    .input:focus { border-color: var(--blue); outline: none; }
 
     /* Modals */
-    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 2000; display: none; align-items: flex-end; }
+    .modal { position: absolute; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; display: none; align-items: flex-end; justify-content: center; }
     .modal.active { display: flex; }
-    .sheet { background: #fff; width: 100%; max-width: 600px; margin: 0 auto; border-radius: 20px 20px 0 0; padding: 25px; animation: slideUp 0.3s; max-height: 90vh; overflow-y: auto; }
+    .sheet { 
+      background: #fff; 
+      width: 100%; 
+      border-radius: 24px 24px 0 0; 
+      padding: 30px 24px 50px; 
+      animation: slideUp 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); 
+      max-height: 90vh; 
+      overflow-y: auto; 
+    }
     @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-    .spinner { width: 24px; height: 24px; border: 3px solid #ddd; border-top-color: var(--blue); border-radius: 50%; animation: spin 1s infinite; margin: 0 auto; }
+    /* Loaders */
+    .spinner { width: 28px; height: 28px; border: 3px solid #ddd; border-top-color: var(--blue); border-radius: 50%; animation: spin 0.8s infinite linear; margin: 0 auto; }
     @keyframes spin { to { transform: rotate(360deg); } }
+    
+    .loading-overlay { text-align: center; padding: 40px 0; }
+    .loading-text { margin-top: 15px; font-weight: 500; color: #555; }
   </style>
 </head>
 <body>
 
-<nav class="navbar">
-  <a href="#" class="nav-logo">Sauki Data</a>
-  <div class="nav-links">
-    <a onclick="document.getElementById('contact-section').scrollIntoView({behavior: 'smooth'})">Contact</a>
-  </div>
-</nav>
+<div class="mobile-wrapper">
+  <nav class="navbar">
+    <a href="#" class="nav-logo">Sauki Data</a>
+    <div class="nav-links">
+      <a onclick="document.getElementById('contact-section').scrollIntoView({behavior: 'smooth'})">Contact</a>
+    </div>
+  </nav>
 
-<div class="container">
-  <div class="hero">
-    <h1>Buy Cheap Data</h1>
-    <p>Automated Instant Delivery</p>
-  </div>
-
-  <div class="grid">
-    <!-- Network Cards -->
-    <div class="card" onclick="fetchPlans('mtn')">
-      <div style="display:flex; align-items:center;">
-        <div class="card-icon" style="color:#FFcc00; background:#FFFBE6;"><b>M</b></div>
-        <div><b>MTN Data</b><br><small style="color:#8e8e93">SME & Gifting</small></div>
-      </div>
-      <span style="color:#c7c7cc">›</span>
+  <div class="container">
+    <div class="hero">
+      <h1>Buy Cheap Data</h1>
+      <p>Instant Delivery &bull; Automated</p>
     </div>
 
-    <div class="card" onclick="fetchPlans('glo')">
-      <div style="display:flex; align-items:center;">
-        <div class="card-icon" style="color:#34C759; background:#E6F9EB;"><b>G</b></div>
-        <div><b>Glo Data</b><br><small style="color:#8e8e93">Corporate</small></div>
+    <div class="grid">
+      <!-- Network Cards -->
+      <div class="card" onclick="fetchPlans('mtn')">
+        <div style="display:flex; align-items:center;">
+          <div class="card-icon" style="color:#FFcc00; background:#FFFBE6;"><b>M</b></div>
+          <div><b>MTN Data</b><br><small style="color:#8e8e93">SME & Gifting</small></div>
+        </div>
+        <span style="color:#c7c7cc">›</span>
       </div>
-      <span style="color:#c7c7cc">›</span>
+
+      <div class="card" onclick="fetchPlans('glo')">
+        <div style="display:flex; align-items:center;">
+          <div class="card-icon" style="color:#34C759; background:#E6F9EB;"><b>G</b></div>
+          <div><b>Glo Data</b><br><small style="color:#8e8e93">Corporate</small></div>
+        </div>
+        <span style="color:#c7c7cc">›</span>
+      </div>
+
+      <div class="card" onclick="fetchPlans('airtel')">
+        <div style="display:flex; align-items:center;">
+          <div class="card-icon" style="color:#FF3B30; background:#FFE6E6;"><b>A</b></div>
+          <div><b>Airtel Data</b><br><small style="color:#8e8e93">Best Offers</small></div>
+        </div>
+        <span style="color:#c7c7cc">›</span>
+      </div>
+
+      <!-- Giveaway -->
+      <div class="card" style="background:#EBF3FF; border:1px solid #007AFF;" onclick="openGiveaway()">
+        <div style="display:flex; align-items:center;">
+          <div class="card-icon" style="background:#fff; color:#007AFF">🎁</div>
+          <div style="color:#007AFF"><b>Giveaway</b><br><small>Win Free Data</small></div>
+        </div>
+        <span style="color:#007AFF">›</span>
+      </div>
     </div>
 
-    <div class="card" onclick="fetchPlans('airtel')">
-      <div style="display:flex; align-items:center;">
-        <div class="card-icon" style="color:#FF3B30; background:#FFE6E6;"><b>A</b></div>
-        <div><b>Airtel Data</b><br><small style="color:#8e8e93">Best Offers</small></div>
+    <!-- Contact & Subscribe -->
+    <div class="grid" id="contact-section" style="margin-top: 40px;">
+      <h3 style="margin-bottom: 5px; padding-left: 5px; font-size: 1.1rem;">Support</h3>
+      
+      <div class="card" onclick="window.open('https://wa.me/2348164135836')">
+        <div style="display:flex; align-items:center;">
+          <div class="card-icon">📞</div>
+          <div><b>WhatsApp</b><br><small>08164135836</small></div>
+        </div>
       </div>
-      <span style="color:#c7c7cc">›</span>
-    </div>
 
-    <!-- Giveaway -->
-    <div class="card" style="background:#EBF3FF; border:1px solid #007AFF;" onclick="openGiveaway()">
-      <div style="display:flex; align-items:center;">
-        <div class="card-icon" style="background:#fff; color:#007AFF">🎁</div>
-        <div style="color:#007AFF"><b>Giveaway</b><br><small>Win Free Data</small></div>
+      <div class="card" onclick="window.open('https://mail.google.com/mail/?view=cm&fs=1&to=saukidatalinks@gmail.com')">
+        <div style="display:flex; align-items:center;">
+          <div class="card-icon">✉️</div>
+          <div><b>Email Us</b><br><small style="font-weight:500;">saukidatalinks@gmail.com</small></div>
+        </div>
       </div>
-      <span style="color:#007AFF">›</span>
-    </div>
-  </div>
 
-  <!-- Contact & Subscribe -->
-  <div class="grid" id="contact-section" style="margin-top: 40px;">
-    <h3 style="margin-bottom: 5px; padding-left: 5px;">Support</h3>
+      <div class="card" onclick="subscribe()">
+        <div style="display:flex; align-items:center;">
+          <div class="card-icon">🔔</div>
+          <div><b>Subscribe</b><br><small>Get Updates via WhatsApp</small></div>
+        </div>
+      </div>
+    </div>
     
-    <div class="card" onclick="window.open('https://wa.me/2348164135836')">
-      <div style="display:flex; align-items:center;">
-        <div class="card-icon">📞</div>
-        <div><b>WhatsApp</b><br><small>08164135836</small></div>
-      </div>
-    </div>
-
-    <div class="card" onclick="window.open('https://mail.google.com/mail/?view=cm&fs=1&to=saukidatalinks@gmail.com')">
-      <div style="display:flex; align-items:center;">
-        <div class="card-icon">✉️</div>
-        <div><b>Email Us</b><br><small style="font-weight:500;">saukidatalinks@gmail.com</small></div>
-      </div>
-    </div>
-
-    <div class="card" onclick="subscribe()">
-      <div style="display:flex; align-items:center;">
-        <div class="card-icon">🔔</div>
-        <div><b>Subscribe</b><br><small>Get Updates via WhatsApp</small></div>
-      </div>
-    </div>
+    <p style="text-align:center; color:#8e8e93; margin-top:40px; font-size:12px; padding-bottom: 20px;">&copy; 2025 Sauki Data Links</p>
   </div>
-  
-  <p style="text-align:center; color:#8e8e93; margin-top:40px; font-size:12px;">&copy; 2025 Sauki Data Links</p>
-</div>
 
-<!-- Modal Structure -->
-<div class="modal" id="modal" onclick="if(event.target===this)closeModal()">
-  <div class="sheet" id="sheet-content"></div>
+  <!-- Modal Structure -->
+  <div class="modal" id="modal" onclick="if(event.target===this)closeModal()">
+    <div class="sheet" id="sheet-content"></div>
+  </div>
 </div>
 
 <script>
-  // ============================================
-  // UPDATED KEY
-  // ============================================
-  const RAW_PUBLIC_KEY = "FLWPUBK-ab3c49ed8e4056a8762fb6c6fbb68a83-X";
-  const FLW_PUBLIC_KEY = RAW_PUBLIC_KEY.trim(); 
-  
+  // CONFIG
+  const FLW_PUBLIC_KEY = "FLWPUBK-6f70b3b654f142ff792f97ec780be79f-X"; // Check for spaces!
   const ADMIN_WHATSAPP = "2348164135836";
   
   let selected = {};
 
-  // 1. Fetch Plans from DB
+  // 1. Fetch Plans
   async function fetchPlans(network) {
-    showSheet(`<div style="text-align:center; padding:40px"><div class="spinner"></div><p>Loading Plans...</p></div>`);
+    showSheet(`
+      <div class="loading-overlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Loading ${network.toUpperCase()} Plans...</div>
+      </div>
+    `);
     
     try {
       const res = await fetch(`/api/plans?network=${network}`);
@@ -150,39 +234,45 @@
 
       const list = plans.map(p => `
         <div onclick="selectPlan('${p.id}', ${p.price}, '${p.name}', '${network}')" 
-             style="padding:15px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center; cursor:pointer">
-          <span style="font-size:16px;">${p.name}</span>
-          <span style="font-weight:600; background:#f2f2f7; padding:5px 10px; border-radius:8px;">₦${p.price}</span>
+             style="padding:16px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center; cursor:pointer">
+          <span style="font-size:16px; font-weight:500">${p.name}</span>
+          <span style="font-weight:600; background:#f2f2f7; padding:6px 12px; border-radius:8px;">₦${p.price}</span>
         </div>
       `).join('');
       
       showSheet(`
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-          <h2 style="margin:0">${network.toUpperCase()} Plans</h2>
-          <button onclick="closeModal()" style="border:none; background:none; font-size:24px">&times;</button>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+          <h2 style="margin:0; font-size:1.4rem;">${network.toUpperCase()} Plans</h2>
+          <button onclick="closeModal()" style="border:none; background:none; font-size:28px; color:#888">&times;</button>
         </div>
         ${list}
       `);
     } catch(e) {
-      showSheet(`<p style="color:red; text-align:center">Failed to load plans. Please check your connection.</p>`);
+      showSheet(`<p style="color:red; text-align:center">Failed to load plans. Please check connection.</p>`);
     }
   }
 
   function selectPlan(id, price, name, network) {
     selected = { id, price, name, network };
     showSheet(`
-      <h3>Confirm Order</h3>
-      <p style="color:#666; margin-bottom:20px;">${network.toUpperCase()} ${name} - ₦${price}</p>
+      <h3 style="margin-bottom:5px">Confirm Order</h3>
+      <p style="color:#666; margin-bottom:25px;">${network.toUpperCase()} ${name} &bull; <b style="color:#000">₦${price}</b></p>
       
-      <input class="input" id="c-name" placeholder="Your Name">
-      <input class="input" type="tel" id="c-phone" placeholder="Beneficiary Phone Number">
+      <label style="font-size:13px; color:#666; margin-left:4px;">Your Name</label>
+      <input class="input" id="c-name" placeholder="e.g. Abdallah">
       
-      <div style="display:flex; gap:10px; align-items:center; margin:15px 0;">
-        <input type="checkbox" id="c-ported" style="width:20px; height:20px">
-        <label for="c-ported">Is this number ported?</label>
+      <label style="font-size:13px; color:#666; margin-left:4px;">Beneficiary Phone</label>
+      <input class="input" type="tel" id="c-phone" placeholder="e.g. 08012345678">
+      
+      <div style="display:flex; gap:12px; align-items:center; margin:15px 0; background:#f9f9f9; padding:10px; border-radius:10px;">
+        <input type="checkbox" id="c-ported" style="width:22px; height:22px">
+        <label for="c-ported" style="font-size:15px;">Is this a ported number?</label>
       </div>
 
-      <button class="btn btn-green" onclick="initiatePay()">Pay ₦${price}</button>
+      <button class="btn btn-green" onclick="initiatePay()">
+        <span>Pay ₦${price}</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
     `);
   }
 
@@ -193,29 +283,36 @@
 
     if(!name || !phone) return alert("Please fill all fields");
 
-    // Clean phone number
-    selected.phone = phone.replace(/[^0-9]/g, '');
+    selected.phone = phone.replace(/\s/g,'');
     if (selected.phone.startsWith("0")) selected.phone = selected.phone.substring(1);
-    // Standardize to 0... for Flutterwave
-    const finalPhone = "0" + selected.phone;
+    const finalPhone = "0" + selected.phone; // Standardize
 
     selected.name = name;
     selected.ported = ported;
 
-    closeModal();
+    // FIX: Show loading state INSTEAD of closing modal immediately
+    showSheet(`
+      <div class="loading-overlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Redirecting to Payment Gateway...</div>
+        <p style="font-size:13px; color:#999; margin-top:10px;">Please wait securely.</p>
+      </div>
+    `);
 
     if(selected.network === 'airtel') {
-        window.location.href = `https://wa.me/${ADMIN_WHATSAPP}?text=I paid for Airtel.`;
+        setTimeout(() => {
+            window.location.href = `https://wa.me/${ADMIN_WHATSAPP}?text=I want to buy Airtel Data manually.`;
+        }, 1500);
         return;
     }
 
     try {
         FlutterwaveCheckout({
-          public_key: FLW_PUBLIC_KEY,
+          public_key: FLW_PUBLIC_KEY.trim(),
           tx_ref: "SAUKI-" + Date.now(),
           amount: selected.price,
           currency: "NGN",
-          payment_options: "banktransfer",
+          payment_options: "banktransfer, card, ussd",
           customer: { 
               email: "saukidatalinks@gmail.com", 
               phone_number: finalPhone, 
@@ -227,19 +324,28 @@
               logo: "https://ordersauki.vercel.app/logo.png" 
           },
           callback: function(data) {
+            // Payment Success: Now we verify
             verifyOrder(data.transaction_id);
           },
           onclose: function() {
-            // User closed payment window
+            // If user closes Flutterwave without paying, close our loading modal
+            closeModal();
           }
         });
     } catch(err) {
-        alert("Flutterwave Error: " + err.message);
+        alert("Payment Error: " + err.message);
+        closeModal();
     }
   }
 
   async function verifyOrder(txId) {
-    showSheet(`<div style="text-align:center; padding:40px"><div class="spinner"></div><h3>Verifying...</h3><p>Sending Data...</p></div>`);
+    showSheet(`
+      <div class="loading-overlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Verifying Payment...</div>
+        <p style="font-size:13px; color:#666; margin-top:5px;">Sending your data now.</p>
+      </div>
+    `);
     
     try {
       const res = await fetch('/api/purchase', {
@@ -248,7 +354,7 @@
         body: JSON.stringify({
           transaction_id: txId,
           plan_id: selected.id,
-          mobile_number: "0" + selected.phone, // Ensure standard format for Amigo
+          mobile_number: "0" + selected.phone,
           network: selected.network,
           ported: selected.ported
         })
@@ -256,18 +362,28 @@
       const data = await res.json();
       
       if(data.success) {
-        showSheet(`<div style="text-align:center; color:green; padding:20px;"><h1>Success!</h1><p>${data.message}</p><button class="btn" onclick="closeModal()">Done</button></div>`);
+        showSheet(`
+          <div style="text-align:center; padding:30px 10px;">
+            <div style="width:60px; height:60px; background:#E6F9EB; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 20px;">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#34C759" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+            </div>
+            <h2 style="margin-bottom:10px;">Successful!</h2>
+            <p style="color:#666; margin-bottom:25px;">${data.message}</p>
+            <button class="btn" onclick="closeModal()">Done</button>
+          </div>
+        `);
       } else {
         showSheet(`
-            <div style="text-align:center; color:red; padding:20px;">
-                <h3>Transaction Note</h3>
-                <p>${data.error}</p>
-                <button class="btn" onclick="window.open('https://wa.me/${ADMIN_WHATSAPP}?text=Order Failed ID: ${txId}')">Contact Admin</button>
+            <div style="text-align:center; padding:30px 10px;">
+                <h3 style="color:#FF3B30">Transaction Note</h3>
+                <p style="margin:15px 0; color:#666;">${data.error}</p>
+                <button class="btn" onclick="window.open('https://wa.me/${ADMIN_WHATSAPP}?text=Order Failed ID: ${txId}')">Contact Support</button>
+                <button class="btn btn-secondary" style="background:#f2f2f7; color:#000; margin-top:10px;" onclick="closeModal()">Close</button>
             </div>
         `);
       }
     } catch(e) {
-      showSheet(`<p>Network Error. Transaction ID: ${txId}</p>`);
+      showSheet(`<p style="text-align:center; padding:20px;">Network Error. Transaction ID: ${txId}</p>`);
     }
   }
 
@@ -279,7 +395,7 @@
   
   function openGiveaway() {
     showSheet(`
-      <h3>🎁 Data Giveaway</h3>
+      <h3 style="margin-bottom:15px; color:#007AFF">🎁 Data Giveaway</h3>
       <input class="input" id="g-phone" placeholder="Your Phone Number">
       <input class="input" id="g-key" placeholder="Giveaway Key (e.g. SAUKI2025)">
       <select class="input" id="g-net"><option>MTN</option><option>Glo</option><option>Airtel</option></select>
@@ -302,5 +418,6 @@
 </script>
 </body>
 </html>
+
 
 
