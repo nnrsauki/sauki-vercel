@@ -125,8 +125,12 @@
 </div>
 
 <script>
-  // CONFIG
-  const FLW_PUBLIC_KEY = "FLWPUBK-6f70b3b654f142ff792f97ec780be79f-X";
+  // ============================================
+  // UPDATED KEY
+  // ============================================
+  const RAW_PUBLIC_KEY = "FLWPUBK-ab3c49ed8e4056a8762fb6c6fbb68a83-X";
+  const FLW_PUBLIC_KEY = RAW_PUBLIC_KEY.trim(); 
+  
   const ADMIN_WHATSAPP = "2348164135836";
   
   let selected = {};
@@ -189,31 +193,49 @@
 
     if(!name || !phone) return alert("Please fill all fields");
 
-    selected.phone = phone.replace(/\s/g,'');
+    // Clean phone number
+    selected.phone = phone.replace(/[^0-9]/g, '');
+    if (selected.phone.startsWith("0")) selected.phone = selected.phone.substring(1);
+    // Standardize to 0... for Flutterwave
+    const finalPhone = "0" + selected.phone;
+
     selected.name = name;
     selected.ported = ported;
 
     closeModal();
 
-    // Specific check for Airtel (If Amigo API doesn't support it yet)
     if(selected.network === 'airtel') {
-        const msg = `Hello, I paid for Airtel Data but API is manual.\nName: ${name}\nPlan: ${selected.name}\nPhone: ${selected.phone}`;
-        // We still let them pay via Flutterwave, but the backend handles it.
-        // If backend fails for Airtel, user contacts admin.
+        window.location.href = `https://wa.me/${ADMIN_WHATSAPP}?text=I paid for Airtel.`;
+        return;
     }
 
-    FlutterwaveCheckout({
-      public_key: FLW_PUBLIC_KEY,
-      tx_ref: "SAUKI-" + Date.now(),
-      amount: selected.price,
-      currency: "NGN",
-      payment_options: "banktransfer",
-      customer: { email: "saukidatalinks@gmail.com", phone_number: selected.phone, name: selected.name },
-      customizations: { title: "Abdullahi Adam Usman", logo: "https://ordersauki.vercel.app/logo.png" },
-      callback: function(data) {
-        verifyOrder(data.transaction_id);
-      }
-    });
+    try {
+        FlutterwaveCheckout({
+          public_key: FLW_PUBLIC_KEY,
+          tx_ref: "SAUKI-" + Date.now(),
+          amount: selected.price,
+          currency: "NGN",
+          payment_options: "banktransfer",
+          customer: { 
+              email: "saukidatalinks@gmail.com", 
+              phone_number: finalPhone, 
+              name: selected.name 
+          },
+          customizations: { 
+              title: "Abdullahi Adam Usman", 
+              description: `Payment for ${selected.name}`,
+              logo: "https://ordersauki.vercel.app/logo.png" 
+          },
+          callback: function(data) {
+            verifyOrder(data.transaction_id);
+          },
+          onclose: function() {
+            // User closed payment window
+          }
+        });
+    } catch(err) {
+        alert("Flutterwave Error: " + err.message);
+    }
   }
 
   async function verifyOrder(txId) {
@@ -226,7 +248,7 @@
         body: JSON.stringify({
           transaction_id: txId,
           plan_id: selected.id,
-          mobile_number: selected.phone,
+          mobile_number: "0" + selected.phone, // Ensure standard format for Amigo
           network: selected.network,
           ported: selected.ported
         })
@@ -236,7 +258,6 @@
       if(data.success) {
         showSheet(`<div style="text-align:center; color:green; padding:20px;"><h1>Success!</h1><p>${data.message}</p><button class="btn" onclick="closeModal()">Done</button></div>`);
       } else {
-        // Error handling
         showSheet(`
             <div style="text-align:center; color:red; padding:20px;">
                 <h3>Transaction Note</h3>
@@ -283,4 +304,3 @@
 </html>
 
 
-          
