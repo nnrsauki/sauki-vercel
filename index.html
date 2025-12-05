@@ -5,9 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Sauki Data Links</title>
   
-  <!-- 1. FLUTTERWAVE SCRIPT (Must be here) -->
-  <script src=""></script>
-  
   <style>
     /* iOS Design System */
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -157,10 +154,11 @@
   </div>
 </div>
 
+<!-- 1. FLUTTERWAVE SCRIPT (Moved to body for better loading) -->
+<script src="https://checkout.flutterwave.com/v3.js"></script>
+
 <script>
   // 2. CONFIGURATION
-  // ============================================
-  // Using the exact key you provided:
   const FLW_PUBLIC_KEY = "FLWPUBK-ab3c49ed8e4056a8762fb6c6fbb68a83-X";
   const ADMIN_WHATSAPP = "2348164135836";
   const ADMIN_EMAIL = "saukidatalinks@gmail.com";
@@ -216,6 +214,12 @@
 
   // --- PAYMENT LOGIC ---
   function payNow() {
+    // SECURITY CHECK: Ensure Flutterwave loaded
+    if (typeof FlutterwaveCheckout === 'undefined') {
+      alert("Payment System Error: The Flutterwave script failed to load. Please check your internet connection or disable ad-blockers.");
+      return;
+    }
+
     const name = document.getElementById('c-name').value;
     const phone = document.getElementById('c-phone').value;
     const ported = document.getElementById('c-ported').checked;
@@ -242,7 +246,7 @@
     `);
 
     if(selected.network === 'airtel') {
-        setTimeout(() => window.location.href = `${ADMIN_WHATSAPP}?text=Buy Airtel Manual`, 1500);
+        setTimeout(() => window.location.href = `https://wa.me/${ADMIN_WHATSAPP}?text=Buy Airtel Manual`, 1500);
         return;
       }
 
@@ -250,7 +254,6 @@
     try {
       FlutterwaveCheckout({
         public_key: FLW_PUBLIC_KEY,
-        // AMENDED: tx_ref now includes phone number
         tx_ref: "SAUKI-" + selected.phone + "-" + Date.now(),
         amount: selected.price,
         currency: "NGN",
@@ -263,13 +266,13 @@
         customizations: {
           title: "Abdullahi Adam Usman",
           description: `Payment for ${selected.name}`,
-          logo: "",
+          logo: "https://saukidata.vercel.app/logo.png",
         },
         callback: function (data) {
           verifyOrder(data.transaction_id);
         },
         onclose: function() {
-          closeModal(); // Close loading screen if user cancels
+          closeModal();
         }
       });
     } catch (err) {
@@ -296,14 +299,13 @@
       });
       const data = await res.json();
       
-      // AMENDED: Updated success message
       let html = data.success 
         ? `<div style="text-align:center; padding:30px;">
              <h2 style="color:#34C759; margin-bottom:15px;">Success!</h2>
              <p style="font-size:1.1rem; line-height:1.4; color:#333;">Thank You for Patronising Sauki Data. Your Data have been Delivered. In an event of network error or failure, you will be manually credited by our customer services.</p>
              <button class="btn btn-green" style="margin-top:20px" onclick="closeModal()">Done</button>
            </div>`
-        : `<div style="text-align:center; padding:30px;"><h3 style="color:red">Failed</h3><p>${data.error}</p><button class="btn btn-accent" onclick="window.location.href='${ADMIN_WHATSAPP}'">Contact Support</button></div>`;
+        : `<div style="text-align:center; padding:30px;"><h3 style="color:red">Failed</h3><p>${data.error}</p><button class="btn btn-accent" onclick="window.location.href='https://wa.me/${ADMIN_WHATSAPP}'">Contact Support</button></div>`;
       
       openModal(data.success ? "Receipt" : "Error", html);
     } catch(e) {
@@ -326,15 +328,14 @@
     const k = document.getElementById('g-key').value;
     const n = document.getElementById('g-net').value;
     if(!p || !k) return alert("Fill all fields");
-    window.open(`${ADMIN_WHATSAPP}?text=${encodeURIComponent(`Giveaway Entry:\nPhone: ${p}\nNetwork: ${n}\nKey: ${k}`)}`, '_blank');
+    window.open(`https://wa.me/${ADMIN_WHATSAPP}?text=${encodeURIComponent(`Giveaway Entry:\nPhone: ${p}\nNetwork: ${n}\nKey: ${k}`)}`, '_blank');
   }
 
-  function subscribe() { window.open(`${ADMIN_WHATSAPP}?text=Subscribe`, '_blank'); }
+  function subscribe() { window.open(`https://wa.me/${ADMIN_WHATSAPP}?text=Subscribe`, '_blank'); }
   
-  // AMENDED: Contact Function with visible details
   function openContact() {
     openModal("Contact", `
-      <div class="list-item" onclick="window.open('${ADMIN_WHATSAPP}', '_blank')">
+      <div class="list-item" onclick="window.open('https://wa.me/${ADMIN_WHATSAPP}', '_blank')">
         <div>
           <span style="display:block; font-weight:500">WhatsApp</span>
           <span style="display:block; font-size:13px; color:#8E8E93">+${ADMIN_WHATSAPP}</span>
@@ -363,3 +364,5 @@
 </script>
 </body>
 </html>
+
+
