@@ -1,14 +1,11 @@
 import pg from 'pg';
-import fetch from 'node-fetch';
 const { Client } = pg;
 
 const CONNECTION_STRING = process.env.POSTGRES_URL; 
 const FLW_SECRET_HASH = process.env.FLW_SECRET_HASH;
-const TERMII_API_KEY = process.env.TERMII_API_KEY;
-const ADMIN_PHONE = "2348164135836"; 
 
 export default async function handler(req, res) {
-    // 1. Verify Signature
+    // 1. Verify Signature (Security)
     const signature = req.headers['verif-hash'];
     if (!signature || signature !== FLW_SECRET_HASH) {
         return res.status(401).send('Unverified');
@@ -23,59 +20,56 @@ export default async function handler(req, res) {
         try {
             await client.connect();
 
-            // A. Check if this is a DUPLICATE transaction
+            // A. Check for DUPLICATE transaction to prevent double funding
             const check = await client.query('SELECT id FROM transactions WHERE reference = $1', [String(data.tx_ref)]);
             if (check.rows.length > 0) {
                 await client.end();
                 return res.status(200).send('Duplicate');
             }
 
-            // B. Find User by Virtual Account Number
-            // Flutterwave usually sends the account number credited in 'data.account_number' or we match by customer email
-            // Note: For Virtual Accounts, the recipient info is in the transaction details.
-            
-            // We search for the user who owns this Virtual Account Number
-            // NOTE: data.customer.phone_number might be the SENDER's phone, not our user's.
-            // We rely on the receiver account number provided in the payload (often in data.account_id or similar, but 
-            // the most reliable way for Virtual Accounts is usually the Reference or matching the "customer.email" if we set it to phone@saukidata.com).
-            
-            // Let's use the email we set during creation: "080123...@saukidata.com"
-            const email = data.customer.email;
+            // B. Find User
+            // We look for the user based on the email attached to the virtual account (phone@saukidata.com)
+            const email = data.customer.email; 
             const phoneFromEmail = email.split('@')[0];
 
+            // Alternatively, check if the transfer is to a static virtual account we generated
             const userCheck = await client.query('SELECT * FROM users WHERE phone_number = $1', [phoneFromEmail]);
 
             if (userCheck.rows.length > 0) {
                 const user = userCheck.rows[0];
-                const amount = data.amount;
+                const amount = Number(data.amount);
 
-                // C. Update User Wallet
+                // C. INSTANT DATABASE UPDATE
+                await client.query('BEGIN'); // Start transaction for safety
+                
+                // 1. Add money to wallet
                 await client.query('UPDATE users SET wallet_balance = wallet_balance + $1 WHERE id = $2', [amount, user.id]);
 
-                // D. Record Transaction
+                // 2. Log the transaction history
                 await client.query(
                     `INSERT INTO transactions (reference, phone_number, status, amount, new_balance, api_response, created_at) 
                      VALUES ($1, $2, 'credit', $3, $4, $5, NOW())`,
-                    [data.tx_ref, user.phone_number, amount, Number(user.wallet_balance) + Number(amount), JSON.stringify(data)]
+                    [data.tx_ref, user.phone_number, amount, Number(user.wallet_balance) + amount, JSON.stringify(data)]
                 );
+
+                await client.query('COMMIT'); // Save changes
                 
-                console.log(`Wallet Funded: ${user.phone_number} +${amount}`);
+                console.log(`SUCCESS: Funded ${user.phone_number} with ₦${amount}`);
             } else {
-                console.log("Payment received but user not found for email:", email);
+                console.log("WARNING: Payment received but User not found for email:", email);
             }
 
             await client.end();
 
-            // E. Optional Admin Alert
-            if (TERMII_API_KEY) {
-                // ... Existing SMS code ...
-            }
-
         } catch (e) {
-            console.error("Webhook Error:", e);
-            if(client) await client.end();
+            console.error("WEBHOOK ERROR:", e);
+            if(client) {
+                try { await client.query('ROLLBACK'); } catch(err) {}
+                await client.end();
+            }
         }
     }
     
+    // Always return 200 OK to Flutterwave so they stop sending the webhook
     res.status(200).send('OK');
 }
