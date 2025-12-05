@@ -29,20 +29,25 @@ export default async function handler(req, res) {
 
         // --- REGISTER / CREATE ACCOUNT ---
         if (req.method === 'POST') {
-            const { action, phone, pin } = req.body;
+            const { action, phone, pin, bvn } = req.body;
 
             // 1. Create New User & Virtual Account
             if (action === 'register') {
+                if(!bvn) {
+                    await client.end();
+                    return res.status(400).json({ error: "BVN/NIN is required" });
+                }
+
                 // A. Create Virtual Account on Flutterwave
-                // Note: We use the phone number as the email to link it
                 const flwPayload = {
                     email: `${phone}@saukidata.com`,
                     is_permanent: true,
-                    bvn: "", // Add BVN here if your compliance level requires it, otherwise leave empty
+                    bvn: bvn, // UPDATED: Using the BVN provided by the user
                     tx_ref: `SAUKI-${uuidv4()}`,
                     phonenumber: phone,
                     firstname: "Sauki",
-                    lastname: `User ${phone}`
+                    lastname: `User ${phone}`,
+                    narration: "Sauki Data Wallet Funding"
                 };
 
                 const flwRes = await fetch('https://api.flutterwave.com/v3/virtual-account-numbers', {
@@ -58,7 +63,11 @@ export default async function handler(req, res) {
 
                 if (flwData.status !== 'success') {
                     await client.end();
-                    return res.status(400).json({ error: 'Could not generate Account. Try again later.', details: flwData.message });
+                    console.error("Flutterwave Error:", flwData); // Log error for debugging
+                    return res.status(400).json({ 
+                        error: 'Could not generate Account. Ensure BVN is valid.', 
+                        details: flwData.message 
+                    });
                 }
 
                 const account = flwData.data;
@@ -110,4 +119,4 @@ export default async function handler(req, res) {
         if(client) await client.end();
         return res.status(500).json({ error: e.message });
     }
-                  }
+}
