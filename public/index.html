@@ -26,7 +26,6 @@
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
       background: var(--bg-gradient);
       color: var(--text-dark);
-      /* LOCK HEIGHT - NO SCROLLING */
       height: 100vh;
       overflow: hidden;
       display: flex;
@@ -54,12 +53,12 @@
       backdrop-filter: blur(10px);
     }
 
-    /* 2. Main Container (Flex distributes space) */
+    /* 2. Main Container */
     .app-screen {
       flex: 1;
       display: flex;
       flex-direction: column;
-      justify-content: space-evenly; /* Even spacing */
+      justify-content: space-evenly; 
       padding: 10px 24px;
       max-width: 500px;
       margin: 0 auto;
@@ -71,12 +70,12 @@
     .header img { width: 44px; height: 44px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
     .brand-name { font-weight: 800; font-size: 1.2rem; letter-spacing: -0.5px; }
 
-    /* Hero - Compact */
+    /* Hero */
     .hero { text-align: center; }
     .hero h2 { font-size: 1.8rem; font-weight: 800; line-height: 1.1; margin-bottom: 5px; background: -webkit-linear-gradient(90deg, #333, #000); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     .hero p { font-size: 0.9rem; color: var(--text-gray); }
 
-    /* Network Row - Compact */
+    /* Network Row */
     .network-row {
       display: flex;
       justify-content: space-between;
@@ -121,7 +120,7 @@
       backdrop-filter: blur(25px);
       -webkit-backdrop-filter: blur(25px);
       border: 1px solid rgba(255, 255, 255, 0.6);
-      border-radius: 28px; /* Styled Border / Pill Shape */
+      border-radius: 28px;
       padding: 15px;
       text-align: center;
       box-shadow: 0 10px 40px rgba(0,0,0,0.05);
@@ -190,7 +189,7 @@
     <!-- Hero -->
     <div class="hero">
       <h2>The Smartest Way<br>to Buy Data.</h2>
-      <p>Cheaper rates. Simpler process.<br>Happier wallet.</p>
+      <p>Cheaper rates. Simpler process.<br>Instant Delivery.</p>
     </div>
 
     <!-- Networks -->
@@ -219,7 +218,7 @@
       </div>
     </div>
 
-    <!-- Floating Footer (Styled Border) -->
+    <!-- Floating Footer -->
     <div class="floating-footer">
       <div class="footer-icons">
         <img src="smedan.png" alt="SMEDAN" onerror="this.style.display='none'">
@@ -332,7 +331,7 @@
             payment_options: "card,banktransfer,ussd",
             redirect_url: window.location.href,
             customer: { email: "saukidatalinks@gmail.com", phone_number: ph, name: nm },
-            customizations: { title: "Sauki Data", logo: "https://saukidata.vercel.app/logo.png" },
+            customizations: { title: "Abdullahi Adam Usman FLW", logo: "https://saukidata.vercel.app/logo.png" },
             callback: (d) => verify(d.transaction_id || ref)
         });
     }
@@ -384,12 +383,14 @@
                 let msg = resp.error;
                 if(msg.includes('Provider') || msg.includes('API')) msg = "Network is down now, but you will be credited immediately it is back.";
                 
+                const supportMsg = `Transaction Failed details:%0A%0ARef: ${txId}%0APhone: ${d.ph}%0APlan: ${d.id}%0AReason: ${resp.error}`;
+                
                 showSheet(`
                     <div style="text-align:center">
                         <div style="font-size:50px; margin-bottom:10px">⚠️</div>
                         <h3 style="margin-bottom:10px; color:#FF3B30">Processing...</h3>
                         <p style="color:#666; margin-bottom:20px">${msg}</p>
-                        <button class="btn-secondary" style="width:100%" onclick="window.location='https://wa.me/${ADMIN_CONTACT}'">Contact Admin</button>
+                        <button class="btn-secondary" style="width:100%" onclick="window.location='https://wa.me/${ADMIN_CONTACT}?text=${supportMsg}'">Contact Admin</button>
                         <button class="btn-primary" style="margin-top:10px; background:#8E8E93" onclick="closeSheet()">Close</button>
                     </div>
                 `);
@@ -406,7 +407,6 @@
     }
     function closeSheet() { document.getElementById('modal-overlay').classList.remove('active'); }
     
-    // --- UPDATED GIVEAWAY ---
     function openGiveaway() {
         showSheet(`
             <h3 style="text-align:center; margin-bottom:15px">🎁 Giveaway Entry</h3>
