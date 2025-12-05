@@ -9,7 +9,7 @@ export default async function handler(req, res) {
     try {
         await client.connect();
         
-        // 1. Create Users Table
+        // 1. Create Tables (Standard)
         await client.query(`
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
@@ -23,7 +23,6 @@ export default async function handler(req, res) {
             );
         `);
 
-        // 2. Update Transactions Table (Add user_id link just in case, and ensure columns exist)
         await client.query(`
             CREATE TABLE IF NOT EXISTS transactions (
                 id SERIAL PRIMARY KEY,
@@ -39,8 +38,20 @@ export default async function handler(req, res) {
             );
         `);
 
+        // --- CRITICAL FIX: Add Missing Columns if they don't exist ---
+        // This fixes the "column does not exist" error by manually adding them
+        
+        await client.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS amount DECIMAL(10, 2);`);
+        await client.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS new_balance DECIMAL(10, 2);`);
+        await client.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS api_response TEXT;`);
+        await client.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS reference VARCHAR(100);`);
+        
+        // Fix Users table just in case
+        await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS virtual_account_number VARCHAR(20);`);
+        await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS virtual_bank_name VARCHAR(100);`);
+
         await client.end();
-        return res.status(200).json({ message: "Database Tables Created/Updated Successfully" });
+        return res.status(200).json({ message: "Database Repaired & Updated Successfully! You can now make transactions." });
     } catch (e) {
         if(client) await client.end();
         return res.status(500).json({ error: e.message });
