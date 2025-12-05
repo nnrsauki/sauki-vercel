@@ -20,11 +20,27 @@
     
     /* Dashboard */
     #view-dashboard { display:none; padding: 20px; }
-    .wallet-card { background: var(--blue); color: white; padding: 25px; border-radius: 24px; margin-bottom: 25px; box-shadow: 0 10px 30px rgba(0,122,255,0.3); position: relative; }
+    
+    /* Wallet Card & Animation */
+    .wallet-card { background: var(--blue); color: white; padding: 25px; border-radius: 24px; margin-bottom: 25px; box-shadow: 0 10px 30px rgba(0,122,255,0.3); position: relative; transition: transform 0.2s; }
+    .wallet-card.money-in { animation: flashGreen 1s ease-out; }
+    
+    @keyframes flashGreen {
+        0% { background: var(--blue); transform: scale(1); }
+        50% { background: #34C759; transform: scale(1.05); box-shadow: 0 10px 40px rgba(52, 199, 89, 0.5); }
+        100% { background: var(--blue); transform: scale(1); }
+    }
+
     .wallet-balance { font-size: 32px; font-weight: 700; margin: 5px 0 20px; }
     .account-info { background: rgba(255,255,255,0.15); padding: 15px; border-radius: 12px; font-size: 14px; backdrop-filter: blur(5px); display:flex; justify-content:space-between; align-items:center; }
     .copy-btn { background: #fff; color: var(--blue); border: none; padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
     .refresh-badge { position: absolute; top: 25px; right: 25px; font-size: 11px; background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 20px; cursor: pointer; }
+
+    /* Toast Notification */
+    #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 50px; padding: 16px; position: fixed; z-index: 1000; left: 50%; bottom: 30px; transform: translateX(-50%); font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+    #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; background-color: #34C759; }
+    @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+    @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
 
     /* Networks */
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
@@ -52,7 +68,6 @@
   
   <!-- VIEW 1: AUTH -->
   <div id="view-login">
-    <!-- Updated Logo source to .png -->
     <img src="logo.png" class="logo" alt="Sauki Data Logo" onerror="this.src='https://via.placeholder.com/100?text=Sauki'">
     <h2 style="margin-bottom:10px; font-size: 24px; font-weight: 700;">Welcome to Sauki Data</h2>
     <p style="color:#888; margin-bottom:40px; font-size: 15px;">Secure. Fast. Automated.</p>
@@ -65,7 +80,6 @@
     <div id="step-2" style="display:none">
       <p style="margin-bottom:20px; font-size:16px; color:#34C759; font-weight:500" id="auth-msg"></p>
       
-      <!-- BVN Field for Registration -->
       <div id="reg-fields" style="display:none; margin-bottom: 15px;">
         <p style="font-size:12px; color:#FF3B30; margin-bottom:10px; line-height:1.4">
           Government regulations require a BVN or NIN to generate your personal bank account number.
@@ -87,7 +101,7 @@
         <img src="logo.png" style="width:30px; height:30px; border-radius:8px">
     </div>
 
-    <div class="wallet-card">
+    <div class="wallet-card" id="wallet-card">
       <div class="refresh-badge" onclick="refreshBalance(true)">↻ Refresh</div>
       <div style="font-size:13px; opacity:0.8">Available Balance</div>
       <div class="wallet-balance" id="dash-bal">₦0.00</div>
@@ -127,6 +141,9 @@
   </div>
 
 </div>
+
+<!-- TOAST -->
+<div id="toast">Payment Received!</div>
 
 <!-- MODAL -->
 <div class="modal" id="modal">
@@ -240,12 +257,33 @@
         const res = await fetch(`/api/user?phone=${USER.phone}`);
         const data = await res.json();
         if(data.exists && data.user) {
-            USER.balance = data.user.wallet_balance;
+            const oldBalance = Number(USER.balance);
+            const newBalance = Number(data.user.wallet_balance);
+            
+            USER.balance = newBalance;
             USER.account_number = data.user.virtual_account_number; 
             USER.bank_name = data.user.virtual_bank_name;
             updateDashboardUI();
+
+            // ANIMATION LOGIC: If money increased by more than 10 Naira
+            if(newBalance > oldBalance + 10) {
+                const diff = newBalance - oldBalance;
+                showToast(`Payment Received: +₦${diff.toLocaleString()}`);
+                
+                const card = document.getElementById('wallet-card');
+                card.classList.remove('money-in'); // Reset
+                void card.offsetWidth; // Trigger reflow
+                card.classList.add('money-in'); // Animate
+            }
         }
     } catch(e) { console.log("Refresh failed"); }
+  }
+
+  function showToast(msg) {
+      const x = document.getElementById("toast");
+      x.innerText = msg;
+      x.className = "show";
+      setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000);
   }
 
   function copyAcc() {
