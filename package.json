@@ -5,8 +5,9 @@
   "dependencies": {
     "node-fetch": "^3.3.2",
     "pg": "^8.11.3",
-    "https-proxy-agent": "^7.0.2",
-    "bcryptjs": "^2.4.3",
-    "uuid": "^9.0.1"
+    "https-proxy-agent": "^7.0.2"
+  },
+  "engines": {
+    "node": "18.x"
   }
 }
