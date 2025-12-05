@@ -51,7 +51,7 @@
   
   <!-- VIEW 1: AUTH -->
   <div id="view-login">
-    <img src="logo.jpg" class="logo" alt="Sauki Data Logo" onerror="this.src='https://via.placeholder.com/100?text=Sauki'">
+    <img src="logo.png" class="logo" alt="Sauki Data Logo" onerror="this.src='https://via.placeholder.com/100?text=Sauki'">
     <h2 style="margin-bottom:10px; font-size: 24px; font-weight: 700;">Welcome to Sauki Data</h2>
     <p style="color:#888; margin-bottom:40px; font-size: 15px;">Secure. Fast. Automated.</p>
     
@@ -62,7 +62,17 @@
 
     <div id="step-2" style="display:none">
       <p style="margin-bottom:20px; font-size:16px; color:#34C759; font-weight:500" id="auth-msg"></p>
+      
+      <!-- New Field: BVN/NIN for Registration Only -->
+      <div id="reg-fields" style="display:none; margin-bottom: 15px;">
+        <p style="font-size:12px; color:#FF3B30; margin-bottom:10px; line-height:1.4">
+          Government regulations require a BVN or NIN to generate your personal bank account number.
+        </p>
+        <input type="text" id="login-bvn" class="input" placeholder="Enter BVN or NIN" maxlength="11" style="text-align:center;">
+      </div>
+
       <input type="password" id="login-pin" class="input" placeholder="Enter 4-digit PIN" maxlength="4" style="text-align:center; letter-spacing:8px; font-size: 24px; font-weight: 700;">
+      
       <button class="btn" style="margin-top:20px" onclick="authAction()" id="auth-btn">Verify PIN</button>
       <button onclick="location.reload()" style="margin-top:15px; border:none; background:none; color:#888; font-size:14px">Cancel</button>
     </div>
@@ -72,7 +82,7 @@
   <div id="view-dashboard">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
         <h2 style="margin:0">Dashboard</h2>
-        <img src="logo.jpg" style="width:30px; height:30px; border-radius:8px">
+        <img src="logo.png" style="width:30px; height:30px; border-radius:8px">
     </div>
 
     <div class="wallet-card">
@@ -145,10 +155,12 @@
         MODE = 'login';
         document.getElementById('auth-msg').innerText = "Welcome back!";
         document.getElementById('auth-btn').innerText = "Login";
+        document.getElementById('reg-fields').style.display = 'none';
       } else {
         MODE = 'register';
-        document.getElementById('auth-msg').innerText = "New Account! Create a 4-digit PIN.";
+        document.getElementById('auth-msg').innerText = "New Account! Create PIN.";
         document.getElementById('auth-btn').innerText = "Create Account";
+        document.getElementById('reg-fields').style.display = 'block'; // Show BVN field
       }
     } catch(e) {
       alert("Connection Error. Please check your internet.");
@@ -159,22 +171,32 @@
   async function authAction() {
     const phone = document.getElementById('login-phone').value.trim();
     const pin = document.getElementById('login-pin').value.trim();
+    const bvn = document.getElementById('login-bvn').value.trim();
     
     if(pin.length !== 4) return alert("PIN must be 4 digits");
     
+    // Validate BVN only if registering
+    if(MODE === 'register' && bvn.length < 11) {
+        return alert("Please enter a valid 11-digit BVN or NIN to create your account.");
+    }
+    
     const btn = document.getElementById('auth-btn');
     btn.innerHTML = '<div class="spinner"></div>'; btn.disabled = true;
+
+    const payload = { action: MODE, phone, pin };
+    if(MODE === 'register') payload.bvn = bvn;
 
     try {
       const res = await fetch('/api/user', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ action: MODE, phone, pin })
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
 
       if(data.error) {
-        alert(data.error);
+        // Show specific error from server (e.g., from Flutterwave)
+        alert(data.error + (data.details ? "\nDetails: " + data.details : ""));
         btn.innerText = "Try Again"; btn.disabled = false;
         if(data.error.includes("found")) location.reload(); 
         return;
@@ -326,6 +348,5 @@
 </script>
 </body>
 </html>
-
 
   
