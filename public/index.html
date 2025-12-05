@@ -20,10 +20,11 @@
     
     /* Dashboard */
     #view-dashboard { display:none; padding: 20px; }
-    .wallet-card { background: var(--blue); color: white; padding: 25px; border-radius: 24px; margin-bottom: 25px; box-shadow: 0 10px 30px rgba(0,122,255,0.3); }
+    .wallet-card { background: var(--blue); color: white; padding: 25px; border-radius: 24px; margin-bottom: 25px; box-shadow: 0 10px 30px rgba(0,122,255,0.3); position: relative; }
     .wallet-balance { font-size: 32px; font-weight: 700; margin: 5px 0 20px; }
     .account-info { background: rgba(255,255,255,0.15); padding: 15px; border-radius: 12px; font-size: 14px; backdrop-filter: blur(5px); display:flex; justify-content:space-between; align-items:center; }
     .copy-btn { background: #fff; color: var(--blue); border: none; padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .refresh-badge { position: absolute; top: 25px; right: 25px; font-size: 11px; background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 20px; cursor: pointer; }
 
     /* Networks */
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
@@ -51,6 +52,7 @@
   
   <!-- VIEW 1: AUTH -->
   <div id="view-login">
+    <!-- Updated Logo source to .png -->
     <img src="logo.png" class="logo" alt="Sauki Data Logo" onerror="this.src='https://via.placeholder.com/100?text=Sauki'">
     <h2 style="margin-bottom:10px; font-size: 24px; font-weight: 700;">Welcome to Sauki Data</h2>
     <p style="color:#888; margin-bottom:40px; font-size: 15px;">Secure. Fast. Automated.</p>
@@ -63,7 +65,7 @@
     <div id="step-2" style="display:none">
       <p style="margin-bottom:20px; font-size:16px; color:#34C759; font-weight:500" id="auth-msg"></p>
       
-      <!-- New Field: BVN/NIN for Registration Only -->
+      <!-- BVN Field for Registration -->
       <div id="reg-fields" style="display:none; margin-bottom: 15px;">
         <p style="font-size:12px; color:#FF3B30; margin-bottom:10px; line-height:1.4">
           Government regulations require a BVN or NIN to generate your personal bank account number.
@@ -86,6 +88,7 @@
     </div>
 
     <div class="wallet-card">
+      <div class="refresh-badge" onclick="refreshBalance(true)">↻ Refresh</div>
       <div style="font-size:13px; opacity:0.8">Available Balance</div>
       <div class="wallet-balance" id="dash-bal">₦0.00</div>
       
@@ -132,10 +135,10 @@
 
 <script>
   let USER = null;
-  let MODE = 'login'; // login or register
+  let MODE = 'login';
   let SELECTED_PLAN = null;
+  let balanceInterval = null;
 
-  // --- AUTH LOGIC ---
   async function checkUser() {
     const phone = document.getElementById('login-phone').value.trim();
     if(phone.length < 10) return alert("Invalid Phone Number");
@@ -160,10 +163,10 @@
         MODE = 'register';
         document.getElementById('auth-msg').innerText = "New Account! Create PIN.";
         document.getElementById('auth-btn').innerText = "Create Account";
-        document.getElementById('reg-fields').style.display = 'block'; // Show BVN field
+        document.getElementById('reg-fields').style.display = 'block'; 
       }
     } catch(e) {
-      alert("Connection Error. Please check your internet.");
+      alert("Connection Error.");
       btn.innerText = originalText;
     }
   }
@@ -174,17 +177,12 @@
     const bvn = document.getElementById('login-bvn').value.trim();
     
     if(pin.length !== 4) return alert("PIN must be 4 digits");
-    
-    // Validate BVN only if registering
-    if(MODE === 'register' && bvn.length < 11) {
-        return alert("Please enter a valid 11-digit BVN or NIN to create your account.");
-    }
+    if(MODE === 'register' && bvn.length < 11) return alert("Please enter a valid BVN/NIN");
     
     const btn = document.getElementById('auth-btn');
     btn.innerHTML = '<div class="spinner"></div>'; btn.disabled = true;
 
-    const payload = { action: MODE, phone, pin };
-    if(MODE === 'register') payload.bvn = bvn;
+    const payload = { action: MODE, phone, pin, bvn: MODE === 'register' ? bvn : undefined };
 
     try {
       const res = await fetch('/api/user', {
@@ -195,7 +193,6 @@
       const data = await res.json();
 
       if(data.error) {
-        // Show specific error from server (e.g., from Flutterwave)
         alert(data.error + (data.details ? "\nDetails: " + data.details : ""));
         btn.innerText = "Try Again"; btn.disabled = false;
         if(data.error.includes("found")) location.reload(); 
@@ -203,14 +200,13 @@
       }
 
       if(MODE === 'register') {
-        alert("Account Created Successfully! Please Login now.");
+        alert("Account Created! Login now.");
         location.reload();
         return;
       }
 
-      // Login Success
       USER = data.data;
-      USER.pin = pin; // Keep pin in memory for transaction
+      USER.pin = pin; 
       initDashboard();
 
     } catch(e) {
@@ -224,9 +220,32 @@
     document.getElementById('view-login').style.display = 'none';
     document.getElementById('view-dashboard').style.display = 'block';
     
+    updateDashboardUI();
+    // Auto Refresh Balance every 5 seconds
+    if(balanceInterval) clearInterval(balanceInterval);
+    balanceInterval = setInterval(() => refreshBalance(false), 5000);
+  }
+
+  function updateDashboardUI() {
     document.getElementById('dash-bal').innerText = `₦${Number(USER.balance).toLocaleString()}`;
     document.getElementById('dash-acc').innerText = USER.account_number || "Generating...";
     document.getElementById('dash-bank').innerText = USER.bank_name || "";
+  }
+
+  async function refreshBalance(showLoader) {
+    if(!USER) return;
+    if(showLoader) document.getElementById('dash-bal').innerText = "Refreshing...";
+    
+    try {
+        const res = await fetch(`/api/user?phone=${USER.phone}`);
+        const data = await res.json();
+        if(data.exists && data.user) {
+            USER.balance = data.user.wallet_balance;
+            USER.account_number = data.user.virtual_account_number; 
+            USER.bank_name = data.user.virtual_bank_name;
+            updateDashboardUI();
+        }
+    } catch(e) { console.log("Refresh failed"); }
   }
 
   function copyAcc() {
@@ -235,34 +254,22 @@
     alert("Account Number Copied!");
   }
 
-  // --- DATA PURCHASE ---
   async function openPlans(net) {
     showModal("Loading Plans...", `<div style="text-align:center; padding: 20px"><div class="spinner" style="border-color:#007AFF; border-top-color:transparent"></div></div>`);
-    
     try {
         const res = await fetch(`/api/plans?network=${net}`);
         const plans = await res.json();
-        
         if(plans.length === 0) {
-        showModal(net.toUpperCase(), "<p style='text-align:center; color:#888'>No plans available at the moment.</p>");
-        return;
+            showModal(net.toUpperCase(), "<p style='text-align:center; color:#888'>No plans available.</p>");
+            return;
         }
-
         let html = `<h3 style="margin-bottom:15px">${net.toUpperCase()} Data</h3><div style="display:grid; gap:10px; max-height: 60vh; overflow-y:auto">`;
         plans.forEach(p => {
-        html += `
-            <div onclick="selectPlan('${p.id}', ${p.price}, '${p.name}', '${net}')" 
-                style="display:flex; justify-content:space-between; align-items:center; padding:16px; background:#f9f9f9; border-radius:12px; cursor:pointer; border: 1px solid #eee;">
-            <b style="font-size:15px">${p.name}</b>
-            <span style="color:#007AFF; font-weight:600">₦${p.price}</span>
-            </div>`;
+        html += `<div onclick="selectPlan('${p.id}', ${p.price}, '${p.name}', '${net}')" style="display:flex; justify-content:space-between; align-items:center; padding:16px; background:#f9f9f9; border-radius:12px; cursor:pointer; border: 1px solid #eee;"><b style="font-size:15px">${p.name}</b><span style="color:#007AFF; font-weight:600">₦${p.price}</span></div>`;
         });
         html += `</div><button onclick="closeModal()" style="margin-top:20px; width:100%; padding:15px; border:none; background:#eee; border-radius:10px; font-weight:600">Close</button>`;
-        
         showModal("", html);
-    } catch(e) {
-        showModal("Error", "<p style='text-align:center'>Failed to load plans.</p>");
-    }
+    } catch(e) { showModal("Error", "<p style='text-align:center'>Failed to load plans.</p>"); }
   }
 
   function selectPlan(id, price, name, net) {
@@ -273,16 +280,13 @@
         <div style="font-size:28px; font-weight:700; color:#333">₦${price}</div>
         <div style="color:#666; margin-top:5px">${net.toUpperCase()} ${name}</div>
       </div>
-      
       <div class="input-group">
         <label style="font-size:12px; font-weight:600; color:#888; margin-bottom:5px; display:block">Beneficiary Phone</label>
         <input id="ben-phone" type="tel" class="input" placeholder="081..." value="${USER.phone}">
       </div>
-
       <div style="margin-bottom:25px; font-size:14px; display:flex; gap:10px; align-items:center">
          <input type="checkbox" id="is-ported" style="width:18px; height:18px"> <label for="is-ported">Ported Number (MNP)?</label>
       </div>
-
       <button onclick="processPurchase()" class="btn" id="pay-btn">Pay ₦${price}</button>
       <button onclick="closeModal()" style="width:100%; padding:15px; background:none; border:none; color:#888; margin-top:5px">Cancel</button>
     `;
@@ -292,61 +296,38 @@
   async function processPurchase() {
     const ben = document.getElementById('ben-phone').value;
     const ported = document.getElementById('is-ported').checked;
-    
     if(ben.length < 10) return alert("Invalid Phone Number");
-
     const btn = document.getElementById('pay-btn');
     const originalText = btn.innerText;
     btn.innerHTML = '<div class="spinner"></div> Processing...'; btn.disabled = true;
-
     try {
       const res = await fetch('/api/purchase', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          phone: USER.phone,
-          pin: USER.pin,
-          plan_id: SELECTED_PLAN.id,
-          beneficiary: ben,
-          ported: ported
-        })
+        body: JSON.stringify({ phone: USER.phone, pin: USER.pin, plan_id: SELECTED_PLAN.id, beneficiary: ben, ported: ported })
       });
-      
       const result = await res.json();
-      
       if(result.success) {
-        // Update local balance
         USER.balance = result.new_balance;
-        document.getElementById('dash-bal').innerText = `₦${Number(USER.balance).toLocaleString()}`;
-        
-        showModal("Transaction Successful", `
-          <div style="text-align:center; padding:20px">
-            <div style="font-size:50px; margin-bottom:10px">✅</div>
-            <h3 style="color:#34C759">Success!</h3>
-            <p style="color:#555; line-height:1.5">Data plan <b>${SELECTED_PLAN.name}</b> has been sent to <b>${ben}</b>.</p>
-            <button onclick="closeModal()" class="btn" style="margin-top:20px">Done</button>
-          </div>
-        `);
+        updateDashboardUI();
+        showModal("Transaction Successful", `<div style="text-align:center; padding:20px"><div style="font-size:50px; margin-bottom:10px">✅</div><h3 style="color:#34C759">Success!</h3><p style="color:#555;">Data sent to <b>${ben}</b>.</p><button onclick="closeModal()" class="btn" style="margin-top:20px">Done</button></div>`);
       } else {
         alert(result.error || "Transaction Failed");
         btn.innerHTML = originalText; btn.disabled = false;
       }
     } catch(e) {
-      alert("Network Error. Please try again.");
+      alert("Network Error.");
       btn.innerHTML = originalText; btn.disabled = false;
     }
   }
 
-  // --- UTILS ---
   function showModal(title, html) {
     document.getElementById('modal').style.display = 'flex';
     document.getElementById('modal-body').innerHTML = (title ? `<h2 style="margin-bottom:15px">${title}</h2>` : '') + html;
   }
-  function closeModal() {
-    document.getElementById('modal').style.display = 'none';
-  }
+  function closeModal() { document.getElementById('modal').style.display = 'none'; }
 </script>
 </body>
 </html>
 
-  
+
