@@ -7,7 +7,6 @@ const { Client } = pg;
 
 const CONNECTION_STRING = process.env.POSTGRES_URL;
 const FLW_SECRET_KEY = process.env.FLW_SECRET_KEY;
-// Admin password hardcoded as per your request
 const ADMIN_AUTH = 'Basic ' + Buffer.from("AbdallahSauki:Abdallah@2025").toString('base64');
 
 export default async function handler(req, res) {
@@ -16,7 +15,6 @@ export default async function handler(req, res) {
 
     try {
         // --- ADMIN: GET ALL USERS ---
-        // Checks if the admin credentials are in the header
         if (req.method === 'GET' && req.headers.authorization === ADMIN_AUTH) {
             const usersRes = await client.query('SELECT id, phone_number, wallet_balance, virtual_account_number, virtual_bank_name, created_at FROM users ORDER BY created_at DESC LIMIT 100');
             await client.end();
@@ -37,8 +35,29 @@ export default async function handler(req, res) {
             }
         }
 
-        // --- AUTHENTICATION (REGISTER / LOGIN) ---
+        // --- ACTIONS ---
         if (req.method === 'POST') {
+            // Check for ADMIN FUNDING action
+            if (req.body.action === 'fund') {
+                 if (req.headers.authorization !== ADMIN_AUTH) {
+                    await client.end();
+                    return res.status(401).json({ error: "Unauthorized" });
+                }
+                const { phone, amount } = req.body;
+                
+                await client.query('UPDATE users SET wallet_balance = wallet_balance + $1 WHERE phone_number = $2', [amount, phone]);
+                
+                // Optional: Log this manual funding in transactions
+                await client.query(
+                    `INSERT INTO transactions (reference, phone_number, status, amount, new_balance, api_response, created_at) 
+                     VALUES ($1, $2, 'credit', $3, 0, $4, NOW())`,
+                    ['MANUAL-' + Date.now(), phone, amount, '{"type":"admin_manual_fund"}']
+                );
+
+                await client.end();
+                return res.status(200).json({ success: true });
+            }
+
             const { action, phone, pin, bvn } = req.body;
 
             // 1. REGISTER
