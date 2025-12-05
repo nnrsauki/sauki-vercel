@@ -7,16 +7,26 @@ const { Client } = pg;
 
 const CONNECTION_STRING = process.env.POSTGRES_URL;
 const FLW_SECRET_KEY = process.env.FLW_SECRET_KEY;
+// Admin password hardcoded as per your request
+const ADMIN_AUTH = 'Basic ' + Buffer.from("AbdallahSauki:Abdallah@2025").toString('base64');
 
 export default async function handler(req, res) {
     const client = new Client({ connectionString: CONNECTION_STRING, ssl: { rejectUnauthorized: false } });
     await client.connect();
 
     try {
-        // --- LOGIN / CHECK USER ---
+        // --- ADMIN: GET ALL USERS ---
+        // Checks if the admin credentials are in the header
+        if (req.method === 'GET' && req.headers.authorization === ADMIN_AUTH) {
+            const usersRes = await client.query('SELECT id, phone_number, wallet_balance, virtual_account_number, virtual_bank_name, created_at FROM users ORDER BY created_at DESC LIMIT 100');
+            await client.end();
+            return res.status(200).json(usersRes.rows);
+        }
+
+        // --- NORMAL USER: CHECK IF EXISTS ---
         if (req.method === 'GET') {
             const { phone } = req.query;
-            const result = await client.query('SELECT phone_number, virtual_account_number FROM users WHERE phone_number = $1', [phone]);
+            const result = await client.query('SELECT phone_number, virtual_account_number, virtual_bank_name, wallet_balance FROM users WHERE phone_number = $1', [phone]);
             
             await client.end();
             
@@ -27,11 +37,11 @@ export default async function handler(req, res) {
             }
         }
 
-        // --- REGISTER / CREATE ACCOUNT ---
+        // --- AUTHENTICATION (REGISTER / LOGIN) ---
         if (req.method === 'POST') {
             const { action, phone, pin, bvn } = req.body;
 
-            // 1. Create New User & Virtual Account
+            // 1. REGISTER
             if (action === 'register') {
                 if(!bvn) {
                     await client.end();
@@ -42,7 +52,7 @@ export default async function handler(req, res) {
                 const flwPayload = {
                     email: `${phone}@saukidata.com`,
                     is_permanent: true,
-                    bvn: bvn, // UPDATED: Using the BVN provided by the user
+                    bvn: bvn, 
                     tx_ref: `SAUKI-${uuidv4()}`,
                     phonenumber: phone,
                     firstname: "Sauki",
@@ -63,7 +73,7 @@ export default async function handler(req, res) {
 
                 if (flwData.status !== 'success') {
                     await client.end();
-                    console.error("Flutterwave Error:", flwData); // Log error for debugging
+                    console.error("Flutterwave Error:", flwData); 
                     return res.status(400).json({ 
                         error: 'Could not generate Account. Ensure BVN is valid.', 
                         details: flwData.message 
@@ -84,7 +94,7 @@ export default async function handler(req, res) {
                 return res.status(200).json({ success: true });
             }
 
-            // 2. Login (Verify PIN & Get Data)
+            // 2. LOGIN
             if (action === 'login') {
                 const userRes = await client.query('SELECT * FROM users WHERE phone_number = $1', [phone]);
                 
@@ -102,7 +112,6 @@ export default async function handler(req, res) {
                     return res.status(401).json({ error: "Invalid PIN" });
                 }
 
-                // Return user details (excluding hash)
                 return res.status(200).json({
                     success: true,
                     data: {
