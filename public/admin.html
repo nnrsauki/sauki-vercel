@@ -15,6 +15,9 @@
     .nav { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
     .nav-item { cursor: pointer; padding: 5px 10px; font-weight: bold; color: #888; }
     .nav-item.active { color: #007AFF; border-bottom: 2px solid #007AFF; }
+    .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+    .success { background: #d4edda; color: #155724; }
+    .fund-btn { background: #28a745; margin-left: 10px; font-size: 12px; padding: 5px 10px; }
   </style>
 </head>
 <body>
@@ -61,7 +64,7 @@
   <div id="view-users" style="display:none">
     <h3>Registered Users</h3>
     <table>
-      <thead><tr><th>Phone</th><th>Balance</th><th>Account Number</th><th>Bank</th></tr></thead>
+      <thead><tr><th>Phone</th><th>Balance</th><th>Account Details</th><th>Action</th></tr></thead>
       <tbody id="tbody-users"></tbody>
     </table>
   </div>
@@ -91,6 +94,7 @@
     else loadPlans();
   }
 
+  // --- PLANS ---
   async function loadPlans() {
     const res = await fetch('/api/plans');
     const d = await res.json();
@@ -98,20 +102,6 @@
       <tr>
         <td>${x.id}</td><td>${x.network} ${x.name}</td><td>₦${x.price}</td><td>${x.plan_id_api}</td>
         <td><button style="background:red; padding:5px" onclick="del('${x.id}')">Del</button></td>
-      </tr>`).join('');
-  }
-
-  async function loadUsers() {
-    const res = await fetch('/api/user', { headers: { 'Authorization': auth } });
-    if(res.status !== 200) return alert("Failed to load users");
-    
-    const d = await res.json();
-    document.getElementById('tbody-users').innerHTML = d.map(x => `
-      <tr>
-        <td>${x.phone_number}</td>
-        <td style="font-weight:bold; color:green">₦${Number(x.wallet_balance).toLocaleString()}</td>
-        <td>${x.virtual_account_number || 'N/A'}</td>
-        <td>${x.virtual_bank_name || 'N/A'}</td>
       </tr>`).join('');
   }
 
@@ -133,6 +123,70 @@
       await fetch('/api/plans', { method: 'POST', headers: {'Content-Type':'application/json', 'Authorization': auth}, body: JSON.stringify({action:'delete', id}) });
       loadPlans();
     }
+  }
+
+  // --- USERS ---
+  async function loadUsers() {
+    const res = await fetch('/api/user', { headers: { 'Authorization': auth } });
+    if(res.status !== 200) return alert("Failed to load users");
+    
+    const d = await res.json();
+    document.getElementById('tbody-users').innerHTML = d.map(x => `
+      <tr>
+        <td>${x.phone_number}</td>
+        <td style="font-weight:bold; color:green">₦${Number(x.wallet_balance).toLocaleString()}</td>
+        <td style="font-size:12px">
+            ${x.virtual_account_number || 'N/A'}<br>
+            <span style="color:#888">${x.virtual_bank_name || ''}</span>
+        </td>
+        <td>
+            <button class="fund-btn" onclick="fundUser('${x.phone_number}')">Fund Wallet</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  async function fundUser(phone) {
+    const amount = prompt(`Enter amount to fund for ${phone}:`);
+    if(!amount) return;
+
+    if(confirm(`Are you sure you want to add ₦${amount} to ${phone}?`)) {
+        try {
+            const res = await fetch('/api/user/fund', { // We will add this endpoint logic to user.js to support manual funding
+                method: 'POST',
+                headers: {'Content-Type':'application/json', 'Authorization': auth},
+                body: JSON.stringify({ phone, amount })
+            });
+            
+            // If the endpoint doesn't exist yet, we will use a workaround or show error
+            // NOTE: To make this work instantly without new files, I'll update user.js below to handle 'manual_fund' action
+            const data = await res.json();
+            if(data.success) {
+                alert("Funded successfully!");
+                loadUsers();
+            } else {
+                // Fallback to the main user endpoint if specific route fails
+                manualFundFallback(phone, amount);
+            }
+        } catch(e) {
+            manualFundFallback(phone, amount);
+        }
+    }
+  }
+
+  async function manualFundFallback(phone, amount) {
+      // Use the generic POST /api/user with action 'fund'
+      const res = await fetch('/api/user', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json', 'Authorization': auth},
+          body: JSON.stringify({ action: 'fund', phone, amount })
+      });
+      const data = await res.json();
+      if(data.success) {
+          alert("Funded Successfully!");
+          loadUsers();
+      } else {
+          alert("Error: " + (data.error || "Could not fund"));
+      }
   }
 </script>
 </body>
