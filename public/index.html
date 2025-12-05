@@ -2,148 +2,279 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#F2F2F7">
   <title>Sauki Data</title>
   <style>
-    /* Global Styles */
+    /* iOS Modern Variables */
     :root { 
-      --bg: #F2F2F7; --card: #fff; --text: #1C1C1E; --sub: #8E8E93;
-      --blue: #007AFF; --green: #34C759; --red: #FF3B30;
-      --radius: 16px;
+      --bg: #F2F2F7; 
+      --card: rgba(255, 255, 255, 0.9);
+      --text: #000000; 
+      --sub: #8E8E93;
+      --blue: #007AFF; 
+      --green: #34C759; 
+      --red: #FF3B30;
+      --radius: 20px;
+      --shadow: 0 8px 24px rgba(0,0,0,0.06);
     }
-    body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; min-height: 100vh; display:flex; justify-content:center; }
-    .app { width: 100%; max-width: 500px; background: var(--bg); min-height: 100vh; position: relative; padding-bottom: 80px; }
+
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif; 
+      background: var(--bg); color: var(--text); margin: 0; padding: 0; 
+      min-height: 100vh; display: flex; justify-content: center;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .app { 
+      width: 100%; max-width: 480px; background: var(--bg); min-height: 100vh; 
+      position: relative; padding-bottom: 40px; overflow-x: hidden;
+    }
+
+    /* Views Transition */
+    .view { 
+      display: none; padding: 20px; padding-top: 10px; animation: fadeIn 0.3s ease; 
+    }
+    .view.active { display: block; }
+    @keyframes fadeIn { from {opacity: 0; transform: translateY(10px);} to {opacity: 1; transform: translateY(0);} }
+
+    /* Top Bars */
+    .status-bar {
+      position: sticky; top: 0; z-index: 1000;
+      background: rgba(242, 242, 247, 0.85);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      padding: 10px 20px; padding-top: max(10px, env(safe-area-inset-top));
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 0.5px solid rgba(0,0,0,0.1);
+    }
+    
+    .status-title { font-size: 14px; font-weight: 600; display: flex; flex-direction: column; }
+    .contact-icons { display: flex; gap: 12px; }
+    .icon-btn { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-decoration: none; transition: transform 0.1s; }
+    .icon-btn:active { transform: scale(0.9); }
+
+    /* Navigation Bar */
+    .nav-header { display: flex; align-items: center; margin-bottom: 20px; }
+    .back-btn { background: none; border: none; font-size: 17px; color: var(--blue); font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 5px; padding: 0; margin-right: 15px; }
+    .page-title { font-size: 28px; font-weight: 700; flex-grow: 1; }
 
     /* Login Screen */
-    #view-login { display:flex; flex-direction:column; justify-content:center; padding:30px; height:100vh; text-align:center; background: #fff; }
-    .logo { width: 100px; height: 100px; border-radius: 20px; margin: 0 auto 25px; object-fit: cover; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    #view-login { min-height: 90vh; display: flex; flex-direction: column; justify-content: center; text-align: center; }
+    .logo { width: 110px; height: 110px; border-radius: 26px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); object-fit: cover; margin-bottom: 20px; }
     
-    /* Dashboard */
-    #view-dashboard { display:none; padding: 20px; }
-    
-    /* Wallet Card & Animation */
-    .wallet-card { background: var(--blue); color: white; padding: 25px; border-radius: 24px; margin-bottom: 25px; box-shadow: 0 10px 30px rgba(0,122,255,0.3); position: relative; transition: transform 0.2s; }
-    .wallet-card.money-in { animation: flashGreen 1s ease-out; }
-    
-    @keyframes flashGreen {
-        0% { background: var(--blue); transform: scale(1); }
-        50% { background: #34C759; transform: scale(1.05); box-shadow: 0 10px 40px rgba(52, 199, 89, 0.5); }
-        100% { background: var(--blue); transform: scale(1); }
+    .cert-section { margin-bottom: 25px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .cert-text { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--sub); letter-spacing: 0.5px; }
+    .cert-logos { display: flex; gap: 15px; align-items: center; justify-content: center; }
+    .cert-img { height: 35px; width: auto; }
+
+    /* Wallet Card */
+    .wallet-card { 
+      background: linear-gradient(135deg, #007AFF, #00C6FF); color: white; padding: 24px; 
+      border-radius: 22px; margin-bottom: 25px; box-shadow: 0 15px 35px rgba(0,122,255,0.35); 
+      position: relative; overflow: hidden;
     }
+    .wallet-balance { font-size: 38px; font-weight: 700; letter-spacing: -1px; margin-bottom: 20px; }
+    .acc-details { background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); padding: 12px 16px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center; }
+    .copy-pill { background: #fff; color: var(--blue); font-size: 11px; font-weight: 700; padding: 6px 12px; border-radius: 20px; cursor: pointer; }
 
-    .wallet-balance { font-size: 32px; font-weight: 700; margin: 5px 0 20px; }
-    .account-info { background: rgba(255,255,255,0.15); padding: 15px; border-radius: 12px; font-size: 14px; backdrop-filter: blur(5px); display:flex; justify-content:space-between; align-items:center; }
-    .copy-btn { background: #fff; color: var(--blue); border: none; padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
-    .refresh-badge { position: absolute; top: 25px; right: 25px; font-size: 11px; background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 20px; cursor: pointer; }
-
-    /* Toast Notification */
-    #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 50px; padding: 16px; position: fixed; z-index: 1000; left: 50%; bottom: 30px; transform: translateX(-50%); font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-    #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; background-color: #34C759; }
-    @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
-    @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
-
-    /* Networks */
+    /* Action Buttons Grid */
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-    .net-card { background: var(--card); padding: 20px; border-radius: var(--radius); text-align: center; cursor: pointer; transition: 0.1s; }
-    .net-card:active { transform: scale(0.98); background: #eee; }
-    
-    /* Inputs */
-    .input-group { margin-bottom: 15px; text-align: left; }
-    .input { width: 100%; padding: 16px; background: #f0f0f5; border: none; border-radius: 14px; font-size: 16px; box-sizing: border-box; outline:none; }
-    .btn { width: 100%; padding: 18px; border: none; border-radius: 14px; font-size: 16px; font-weight: 600; cursor: pointer; color: #fff; background: var(--blue); }
-    .btn:disabled { opacity: 0.7; }
+    .net-card { background: #fff; padding: 20px; border-radius: 20px; text-align: center; cursor: pointer; box-shadow: var(--shadow); transition: transform 0.1s; }
+    .net-card:active { transform: scale(0.95); }
+    .net-logo { width: 40px; height: 40px; border-radius: 50%; margin-bottom: 10px; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-weight: bold; font-size: 14px;}
 
+    /* History List */
+    .history-list { display: flex; flex-direction: column; gap: 10px; }
+    .hist-item { background: #fff; padding: 15px; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
+    .hist-left { display: flex; flex-direction: column; gap: 4px; }
+    .hist-title { font-weight: 600; font-size: 15px; }
+    .hist-date { font-size: 12px; color: var(--sub); }
+    .hist-amount { font-weight: 700; }
+    .hist-status { font-size: 10px; padding: 3px 8px; border-radius: 10px; text-transform: uppercase; font-weight: 700; width: fit-content; }
+    .status-success { background: #d4edda; color: #155724; }
+    .status-credit { background: #cce5ff; color: #004085; }
+    .status-failed { background: #f8d7da; color: #721c24; }
+
+    /* Success & Failure Screens */
+    .result-icon { width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; margin: 0 auto 20px; color: white; }
+    .success-bg { background: var(--green); box-shadow: 0 10px 30px rgba(52, 199, 89, 0.4); }
+    .fail-bg { background: var(--red); box-shadow: 0 10px 30px rgba(255, 59, 48, 0.4); }
+    
+    .detail-row { display: flex; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid #eee; font-size: 14px; }
+    .detail-label { color: var(--sub); }
+    .detail-val { font-weight: 600; }
+
+    /* Inputs & Buttons */
+    .input { width: 100%; padding: 18px; background: #fff; border: none; border-radius: 16px; font-size: 17px; box-sizing: border-box; outline: none; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
+    .btn { width: 100%; padding: 18px; background: var(--blue); color: #fff; border: none; border-radius: 16px; font-size: 17px; font-weight: 600; cursor: pointer; box-shadow: 0 8px 20px rgba(0,122,255,0.25); }
+    .btn-secondary { background: #e5e5ea; color: #000; box-shadow: none; }
+    
+    /* Footer */
+    .footer { margin-top: 40px; text-align: center; font-size: 11px; color: var(--sub); padding-bottom: 20px; line-height: 1.5; }
+    
     /* Modal */
-    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: flex-end; z-index: 100; }
-    .modal-content { background: #fff; width: 100%; border-radius: 24px 24px 0 0; padding: 30px 20px; animation: slideUp 0.3s; max-height: 80vh; overflow-y: auto; }
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: none; align-items: flex-end; z-index: 2000; }
+    .modal-content { background: #fff; width: 100%; border-radius: 30px 30px 0 0; padding: 30px 24px; animation: slideUp 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); max-height: 85vh; overflow-y: auto; }
     @keyframes slideUp { from {transform: translateY(100%)} to {transform: translateY(0)} }
     
-    .spinner { width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite; display:inline-block; }
+    .spinner { width: 20px; height: 20px; border: 2.5px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; display:inline-block; vertical-align: middle; }
     @keyframes spin { to {transform: rotate(360deg)} }
   </style>
 </head>
 <body>
 
 <div class="app">
+
+  <!-- TOP STATUS BAR (Persistent) -->
+  <div class="status-bar">
+    <div class="status-title">
+      <span style="color:var(--blue)">Sauki Data</span>
+      <span style="font-size:10px; color:var(--sub)">saukidatalinks@gmail.com</span>
+    </div>
+    <div class="contact-icons">
+      <!-- Phone -->
+      <a href="tel:08164135836" class="icon-btn" style="color:#34C759">📞</a>
+      <!-- WhatsApp -->
+      <a href="https://wa.me/2348164135836" target="_blank" class="icon-btn" style="color:#25D366">💬</a>
+    </div>
+  </div>
   
   <!-- VIEW 1: AUTH -->
-  <div id="view-login">
-    <img src="logo.png" class="logo" alt="Sauki Data Logo" onerror="this.src='https://via.placeholder.com/100?text=Sauki'">
-    <h2 style="margin-bottom:10px; font-size: 24px; font-weight: 700;">Welcome to Sauki Data</h2>
-    <p style="color:#888; margin-bottom:40px; font-size: 15px;">Secure. Fast. Automated.</p>
+  <div id="view-login" class="view active">
+    <img src="logo.jpg" class="logo" alt="Logo" onerror="this.src='https://via.placeholder.com/100'">
+    <h2 style="margin:0; font-size:28px;">Sauki Data</h2>
+    <p style="color:var(--sub); margin:5px 0 20px;">Secure. Fast. Automated.</p>
     
+    <!-- SMEDAN & COAT OF ARMS -->
+    <div class="cert-section">
+        <div class="cert-text">Government Certified Business by SMEDAN</div>
+        <div class="cert-logos">
+            <img src="smedan.png" class="cert-img" onerror="this.style.display='none'">
+            <img src="coat.png" class="cert-img" onerror="this.style.display='none'">
+        </div>
+    </div>
+
     <div id="step-1">
-      <input type="tel" id="login-phone" class="input" placeholder="Enter Phone Number (e.g. 081...)" style="text-align:center">
-      <button class="btn" style="margin-top:20px" onclick="checkUser()">Continue</button>
+      <input type="tel" id="login-phone" class="input" placeholder="Phone Number (e.g. 081...)" style="text-align:center">
+      <button class="btn" onclick="checkUser()">Continue</button>
     </div>
 
     <div id="step-2" style="display:none">
-      <p style="margin-bottom:20px; font-size:16px; color:#34C759; font-weight:500" id="auth-msg"></p>
-      
-      <div id="reg-fields" style="display:none; margin-bottom: 15px;">
-        <p style="font-size:12px; color:#FF3B30; margin-bottom:10px; line-height:1.4">
-          Government regulations require a BVN or NIN to generate your personal bank account number.
-        </p>
-        <input type="text" id="login-bvn" class="input" placeholder="Enter BVN or NIN" maxlength="11" style="text-align:center;">
+      <!-- REGULATORY WARNING -->
+      <div id="reg-fields" style="display:none; text-align:left; background:#fff3cd; padding:15px; border-radius:12px; font-size:13px; color:#856404; margin-bottom:15px; line-height: 1.4;">
+        <b>In line with Nigerian regulatory requirements, a valid BVN is mandatory for account creation.</b><br><br>
+        Your BVN is transmitted securely and encrypted directly to Sterling Bank/Flutterwave's servers for the automatic setup of your funding account. <b>Sauki Data neither receives nor stores your BVN at any time.</b>
+        <input type="text" id="login-bvn" class="input" placeholder="Enter BVN or NIN" maxlength="11" style="margin-top:10px; border:1px solid #ddd">
       </div>
 
-      <input type="password" id="login-pin" class="input" placeholder="Enter 4-digit PIN" maxlength="4" style="text-align:center; letter-spacing:8px; font-size: 24px; font-weight: 700;">
-      
-      <button class="btn" style="margin-top:20px" onclick="authAction()" id="auth-btn">Verify PIN</button>
-      <button onclick="location.reload()" style="margin-top:15px; border:none; background:none; color:#888; font-size:14px">Cancel</button>
+      <input type="password" id="login-pin" class="input" placeholder="Enter 4-digit PIN" maxlength="4" style="text-align:center; letter-spacing:8px; font-weight:700;">
+      <button class="btn" onclick="authAction()" id="auth-btn">Verify PIN</button>
+      <button onclick="location.reload()" style="margin-top:15px; border:none; background:none; color:var(--sub)">Cancel</button>
+    </div>
+    
+    <div class="footer">
+        Sauki Data Links copyright<br>
+        Developed with ❤️ from Abdallah Nangere
     </div>
   </div>
 
   <!-- VIEW 2: DASHBOARD -->
-  <div id="view-dashboard">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
-        <h2 style="margin:0">Dashboard</h2>
-        <img src="logo.png" style="width:30px; height:30px; border-radius:8px">
-    </div>
-
+  <div id="view-dashboard" class="view">
     <div class="wallet-card" id="wallet-card">
-      <div class="refresh-badge" onclick="refreshBalance(true)">↻ Refresh</div>
-      <div style="font-size:13px; opacity:0.8">Available Balance</div>
-      <div class="wallet-balance" id="dash-bal">₦0.00</div>
-      
-      <div class="account-info">
-        <div>
-          <div style="font-size:10px; opacity:0.8; margin-bottom:2px">PERSONAL ACCOUNT</div>
-          <div style="font-weight:600; font-size:16px" id="dash-acc">Loading...</div>
-          <div style="font-size:11px" id="dash-bank">...</div>
+        <div style="font-size:13px; opacity:0.9">Total Balance</div>
+        <div class="wallet-balance" id="dash-bal">₦0.00</div>
+        <div class="acc-details">
+            <div>
+                <div style="font-size:10px; text-transform:uppercase;">Dedicated Account</div>
+                <div style="font-family:monospace; font-size:18px; font-weight:600" id="dash-acc">...</div>
+                <div style="font-size:11px" id="dash-bank">Sterling Bank</div>
+            </div>
+            <div class="copy-pill" onclick="copyAcc()">COPY</div>
         </div>
-        <button class="copy-btn" onclick="copyAcc()">COPY</button>
-      </div>
-      <p style="font-size:11px; margin-top:10px; opacity:0.7; text-align:center">Transfer money to this account number to fund your wallet instantly.</p>
     </div>
 
-    <h3 style="margin-bottom:15px">Buy Data</h3>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
+        <div class="page-title" style="font-size:20px">Buy Data</div>
+        <button onclick="showHistory()" style="background:#fff; border:none; color:var(--blue); font-weight:600; padding:8px 15px; border-radius:20px; font-size:13px; box-shadow:0 2px 8px rgba(0,0,0,0.05)">History 🕒</button>
+    </div>
+
     <div class="grid">
       <div class="net-card" onclick="openPlans('mtn')">
-        <h3 style="color:#FFCC00; margin:0">MTN</h3>
-        <p style="font-size:12px; color:#888">SME / CG</p>
+        <div class="net-logo" style="background:#FFCC00; color:#000">MTN</div>
+        <div style="font-weight:600">MTN Data</div>
       </div>
       <div class="net-card" onclick="openPlans('glo')">
-        <h3 style="color:#34C759; margin:0">GLO</h3>
-        <p style="font-size:12px; color:#888">Cheap Data</p>
+        <div class="net-logo" style="background:#34C759">GLO</div>
+        <div style="font-weight:600">Glo Data</div>
       </div>
       <div class="net-card" onclick="openPlans('airtel')">
-        <h3 style="color:#FF3B30; margin:0">AIRTEL</h3>
-        <p style="font-size:12px; color:#888">Fast</p>
+        <div class="net-logo" style="background:#FF3B30">AIR</div>
+        <div style="font-weight:600">Airtel Data</div>
       </div>
       <div class="net-card" onclick="openPlans('9mobile')">
-        <h3 style="color:#007AFF; margin:0">9MOBILE</h3>
-        <p style="font-size:12px; color:#888">Standard</p>
+        <div class="net-logo" style="background:#007AFF">9M</div>
+        <div style="font-weight:600">9mobile</div>
       </div>
     </div>
 
-    <button onclick="window.location.reload()" style="background:none; border:none; margin-top:40px; color:#888; width:100%">Logout</button>
+    <button onclick="location.reload()" style="margin-top:40px; background:none; border:none; color:var(--red); width:100%; font-weight:600">Log Out</button>
+    
+    <div class="footer">
+        Sauki Data Links copyright<br>
+        Developed with ❤️ from Abdallah Nangere
+    </div>
+  </div>
+
+  <!-- VIEW 3: SUCCESS SCREEN -->
+  <div id="view-success" class="view" style="text-align:center; padding-top:40px;">
+    <div class="result-icon success-bg">✓</div>
+    <h2 style="margin-bottom:5px">Data Purchase Successful</h2>
+    <p style="color:var(--sub); margin-bottom:30px">Your data has been sent.</p>
+
+    <div style="background:#fff; border-radius:16px; padding:20px; margin-bottom:30px; box-shadow:var(--shadow)">
+        <div class="detail-row">
+            <span class="detail-label">Beneficiary Number</span>
+            <span class="detail-val" id="succ-phone">...</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Package</span>
+            <span class="detail-val" id="succ-plan">...</span>
+        </div>
+        <div class="detail-row" style="border:none">
+            <span class="detail-label">Amount Paid</span>
+            <span class="detail-val" id="succ-amt">...</span>
+        </div>
+    </div>
+
+    <button onclick="switchView('view-dashboard')" class="btn">Done</button>
+    <button onclick="switchView('view-dashboard')" style="margin-top:15px; background:none; border:none; color:var(--sub)">Back to Home</button>
+  </div>
+
+  <!-- VIEW 4: FAILURE SCREEN -->
+  <div id="view-fail" class="view" style="text-align:center; padding-top:40px;">
+    <div class="result-icon fail-bg">✕</div>
+    <h2 style="margin-bottom:5px">Transaction Failed</h2>
+    <p style="color:var(--sub); margin-bottom:30px" id="fail-reason">Something went wrong.</p>
+
+    <button onclick="switchView('view-dashboard')" class="btn">Try Again</button>
+    <button onclick="switchView('view-dashboard')" style="margin-top:15px; background:none; border:none; color:var(--sub)">Back to Home</button>
+  </div>
+
+  <!-- VIEW 5: HISTORY -->
+  <div id="view-history" class="view">
+    <div class="nav-header">
+        <button class="back-btn" onclick="switchView('view-dashboard')">‹ Back</button>
+        <div class="page-title">Transactions</div>
+    </div>
+    <div id="history-container" class="history-list">
+        <div style="text-align:center; padding:40px; color:var(--sub)">Loading...</div>
+    </div>
   </div>
 
 </div>
 
 <!-- TOAST -->
-<div id="toast">Payment Received!</div>
+<div id="toast" style="visibility:hidden; background:#333; color:#fff; padding:15px; border-radius:50px; position:fixed; bottom:40px; left:50%; transform:translateX(-50%); z-index:3000">Msg</div>
 
 <!-- MODAL -->
 <div class="modal" id="modal">
@@ -156,36 +287,44 @@
   let SELECTED_PLAN = null;
   let balanceInterval = null;
 
+  // Navigation Logic
+  function switchView(viewId) {
+    document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+    document.getElementById(viewId).classList.add('active');
+    window.scrollTo(0,0);
+    
+    // Resume/Pause Balance Check
+    if(viewId === 'view-dashboard') {
+        refreshBalance(false);
+        if(!balanceInterval) balanceInterval = setInterval(() => refreshBalance(false), 6000);
+    } else {
+        if(balanceInterval) clearInterval(balanceInterval);
+        balanceInterval = null;
+    }
+  }
+
+  // --- AUTH FUNCTIONS ---
   async function checkUser() {
     const phone = document.getElementById('login-phone').value.trim();
-    if(phone.length < 10) return alert("Invalid Phone Number");
+    if(phone.length < 10) return alert("Invalid Phone");
     
     const btn = document.querySelector('#step-1 button');
-    const originalText = btn.innerText;
-    btn.innerHTML = '<div class="spinner"></div>';
+    btn.innerText = 'Checking...'; btn.disabled = true;
     
     try {
       const res = await fetch(`/api/user?phone=${phone}`);
       const data = await res.json();
-      
       document.getElementById('step-1').style.display = 'none';
       document.getElementById('step-2').style.display = 'block';
-      
       if(data.exists) {
         MODE = 'login';
-        document.getElementById('auth-msg').innerText = "Welcome back!";
         document.getElementById('auth-btn').innerText = "Login";
-        document.getElementById('reg-fields').style.display = 'none';
       } else {
         MODE = 'register';
-        document.getElementById('auth-msg').innerText = "New Account! Create PIN.";
         document.getElementById('auth-btn').innerText = "Create Account";
         document.getElementById('reg-fields').style.display = 'block'; 
       }
-    } catch(e) {
-      alert("Connection Error.");
-      btn.innerText = originalText;
-    }
+    } catch(e) { alert("Connection Error"); btn.innerText = 'Continue'; btn.disabled = false; }
   }
 
   async function authAction() {
@@ -193,179 +332,163 @@
     const pin = document.getElementById('login-pin').value.trim();
     const bvn = document.getElementById('login-bvn').value.trim();
     
-    if(pin.length !== 4) return alert("PIN must be 4 digits");
-    if(MODE === 'register' && bvn.length < 11) return alert("Please enter a valid BVN/NIN");
-    
     const btn = document.getElementById('auth-btn');
-    btn.innerHTML = '<div class="spinner"></div>'; btn.disabled = true;
-
-    const payload = { action: MODE, phone, pin, bvn: MODE === 'register' ? bvn : undefined };
+    const oldText = btn.innerText;
+    btn.innerText = 'Verifying...'; btn.disabled = true;
 
     try {
       const res = await fetch('/api/user', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ action: MODE, phone, pin, bvn: MODE==='register'?bvn:undefined })
       });
       const data = await res.json();
-
-      if(data.error) {
-        alert(data.error + (data.details ? "\nDetails: " + data.details : ""));
-        btn.innerText = "Try Again"; btn.disabled = false;
-        if(data.error.includes("found")) location.reload(); 
-        return;
-      }
-
-      if(MODE === 'register') {
-        alert("Account Created! Login now.");
-        location.reload();
-        return;
-      }
+      if(data.error) throw new Error(data.error);
+      
+      if(MODE === 'register') { alert("Account Created! Login now."); location.reload(); return; }
 
       USER = data.data;
       USER.pin = pin; 
-      initDashboard();
+      
+      // Setup Dashboard
+      document.getElementById('dash-bal').innerText = `₦${Number(USER.balance).toLocaleString()}`;
+      document.getElementById('dash-acc').innerText = USER.account_number || "Generating...";
+      document.getElementById('dash-bank').innerText = USER.bank_name || "";
+      
+      switchView('view-dashboard');
 
-    } catch(e) {
-      alert("Error: " + e.message);
-      btn.disabled = false;
-      btn.innerText = "Try Again";
-    }
+    } catch(e) { alert(e.message); btn.innerText = oldText; btn.disabled = false; }
   }
 
-  function initDashboard() {
-    document.getElementById('view-login').style.display = 'none';
-    document.getElementById('view-dashboard').style.display = 'block';
-    
-    updateDashboardUI();
-    // Auto Refresh Balance every 5 seconds
-    if(balanceInterval) clearInterval(balanceInterval);
-    balanceInterval = setInterval(() => refreshBalance(false), 5000);
-  }
-
-  function updateDashboardUI() {
-    document.getElementById('dash-bal').innerText = `₦${Number(USER.balance).toLocaleString()}`;
-    document.getElementById('dash-acc').innerText = USER.account_number || "Generating...";
-    document.getElementById('dash-bank').innerText = USER.bank_name || "";
-  }
-
-  async function refreshBalance(showLoader) {
+  async function refreshBalance() {
     if(!USER) return;
-    if(showLoader) document.getElementById('dash-bal').innerText = "Refreshing...";
-    
     try {
         const res = await fetch(`/api/user?phone=${USER.phone}`);
         const data = await res.json();
-        if(data.exists && data.user) {
-            const oldBalance = Number(USER.balance);
-            const newBalance = Number(data.user.wallet_balance);
-            
-            USER.balance = newBalance;
-            USER.account_number = data.user.virtual_account_number; 
-            USER.bank_name = data.user.virtual_bank_name;
-            updateDashboardUI();
-
-            // ANIMATION LOGIC: If money increased by more than 10 Naira
-            if(newBalance > oldBalance + 10) {
-                const diff = newBalance - oldBalance;
-                showToast(`Payment Received: +₦${diff.toLocaleString()}`);
-                
-                const card = document.getElementById('wallet-card');
-                card.classList.remove('money-in'); // Reset
-                void card.offsetWidth; // Trigger reflow
-                card.classList.add('money-in'); // Animate
-            }
+        if(data.exists) {
+            USER.balance = data.user.wallet_balance;
+            document.getElementById('dash-bal').innerText = `₦${Number(USER.balance).toLocaleString()}`;
         }
-    } catch(e) { console.log("Refresh failed"); }
+    } catch(e){}
   }
 
-  function showToast(msg) {
-      const x = document.getElementById("toast");
-      x.innerText = msg;
-      x.className = "show";
-      setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000);
-  }
-
-  function copyAcc() {
-    if(!USER.account_number) return;
-    navigator.clipboard.writeText(USER.account_number);
-    alert("Account Number Copied!");
-  }
-
+  // --- PURCHASE LOGIC ---
   async function openPlans(net) {
-    showModal("Loading Plans...", `<div style="text-align:center; padding: 20px"><div class="spinner" style="border-color:#007AFF; border-top-color:transparent"></div></div>`);
+    showModal("Loading...", `<div style="text-align:center; padding:30px"><div class="spinner"></div></div>`);
     try {
         const res = await fetch(`/api/plans?network=${net}`);
         const plans = await res.json();
-        if(plans.length === 0) {
-            showModal(net.toUpperCase(), "<p style='text-align:center; color:#888'>No plans available.</p>");
-            return;
-        }
-        let html = `<h3 style="margin-bottom:15px">${net.toUpperCase()} Data</h3><div style="display:grid; gap:10px; max-height: 60vh; overflow-y:auto">`;
+        let html = `<h3 style="margin-top:0">${net.toUpperCase()} Plans</h3><div style="display:grid; gap:10px; max-height:60vh; overflow-y:auto">`;
+        if(plans.length === 0) html += `<p>No plans available.</p>`;
         plans.forEach(p => {
-        html += `<div onclick="selectPlan('${p.id}', ${p.price}, '${p.name}', '${net}')" style="display:flex; justify-content:space-between; align-items:center; padding:16px; background:#f9f9f9; border-radius:12px; cursor:pointer; border: 1px solid #eee;"><b style="font-size:15px">${p.name}</b><span style="color:#007AFF; font-weight:600">₦${p.price}</span></div>`;
+             html += `<div onclick="confirmPlan('${p.id}', ${p.price}, '${p.name}', '${net}')" style="background:#f5f5f7; padding:15px; border-radius:12px; display:flex; justify-content:space-between; cursor:pointer"><b>${p.name}</b><span style="color:#007AFF">₦${p.price}</span></div>`;
         });
-        html += `</div><button onclick="closeModal()" style="margin-top:20px; width:100%; padding:15px; border:none; background:#eee; border-radius:10px; font-weight:600">Close</button>`;
+        html += `</div><button onclick="closeModal()" class="btn btn-secondary" style="margin-top:20px">Close</button>`;
         showModal("", html);
-    } catch(e) { showModal("Error", "<p style='text-align:center'>Failed to load plans.</p>"); }
+    } catch(e) { showModal("Error", "Failed to load."); }
   }
 
-  function selectPlan(id, price, name, net) {
+  function confirmPlan(id, price, name, net) {
     SELECTED_PLAN = { id, price, name, net };
-    const html = `
-      <h3>Confirm Order</h3>
-      <div style="text-align:center; padding:20px; background:#f5f5f5; border-radius:12px; margin-bottom:20px">
-        <div style="font-size:28px; font-weight:700; color:#333">₦${price}</div>
-        <div style="color:#666; margin-top:5px">${net.toUpperCase()} ${name}</div>
-      </div>
-      <div class="input-group">
-        <label style="font-size:12px; font-weight:600; color:#888; margin-bottom:5px; display:block">Beneficiary Phone</label>
-        <input id="ben-phone" type="tel" class="input" placeholder="081..." value="${USER.phone}">
-      </div>
-      <div style="margin-bottom:25px; font-size:14px; display:flex; gap:10px; align-items:center">
-         <input type="checkbox" id="is-ported" style="width:18px; height:18px"> <label for="is-ported">Ported Number (MNP)?</label>
-      </div>
-      <button onclick="processPurchase()" class="btn" id="pay-btn">Pay ₦${price}</button>
-      <button onclick="closeModal()" style="width:100%; padding:15px; background:none; border:none; color:#888; margin-top:5px">Cancel</button>
-    `;
-    showModal("", html);
+    showModal("", `
+        <h3 style="margin-top:0">Confirm Order</h3>
+        <div style="background:#f5f5f7; padding:20px; border-radius:16px; text-align:center; margin-bottom:20px">
+            <div style="font-size:30px; font-weight:700">₦${price}</div>
+            <div style="color:#888">${net.toUpperCase()} ${name}</div>
+        </div>
+        <input id="ben-phone" type="tel" class="input" value="${USER.phone}" placeholder="Beneficiary Phone">
+        <div style="margin-bottom:20px; display:flex; gap:10px; align-items:center; font-size:14px">
+            <input type="checkbox" id="is-ported" style="width:20px; height:20px"> <label for="is-ported">Ported Number?</label>
+        </div>
+        <button onclick="process()" class="btn" id="pay-btn">Pay Now</button>
+        <button onclick="closeModal()" class="btn btn-secondary" style="margin-top:10px">Cancel</button>
+    `);
   }
 
-  async function processPurchase() {
+  async function process() {
     const ben = document.getElementById('ben-phone').value;
     const ported = document.getElementById('is-ported').checked;
-    if(ben.length < 10) return alert("Invalid Phone Number");
+    if(ben.length < 10) return alert("Invalid Number");
+
     const btn = document.getElementById('pay-btn');
-    const originalText = btn.innerText;
-    btn.innerHTML = '<div class="spinner"></div> Processing...'; btn.disabled = true;
+    btn.innerHTML = '<div class="spinner"></div>'; btn.disabled = true;
+
     try {
-      const res = await fetch('/api/purchase', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ phone: USER.phone, pin: USER.pin, plan_id: SELECTED_PLAN.id, beneficiary: ben, ported: ported })
-      });
-      const result = await res.json();
-      if(result.success) {
-        USER.balance = result.new_balance;
-        updateDashboardUI();
-        showModal("Transaction Successful", `<div style="text-align:center; padding:20px"><div style="font-size:50px; margin-bottom:10px">✅</div><h3 style="color:#34C759">Success!</h3><p style="color:#555;">Data sent to <b>${ben}</b>.</p><button onclick="closeModal()" class="btn" style="margin-top:20px">Done</button></div>`);
-      } else {
-        alert(result.error || "Transaction Failed");
-        btn.innerHTML = originalText; btn.disabled = false;
-      }
+        const res = await fetch('/api/purchase', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ phone: USER.phone, pin: USER.pin, plan_id: SELECTED_PLAN.id, beneficiary: ben, ported })
+        });
+        const result = await res.json();
+        closeModal();
+
+        if(result.success) {
+            // Update User Balance
+            USER.balance = result.new_balance;
+            // Setup Success Screen
+            document.getElementById('succ-phone').innerText = ben;
+            document.getElementById('succ-plan').innerText = `${SELECTED_PLAN.net.toUpperCase()} ${SELECTED_PLAN.name}`;
+            document.getElementById('succ-amt').innerText = `₦${SELECTED_PLAN.price}`;
+            switchView('view-success');
+        } else {
+            document.getElementById('fail-reason').innerText = result.error || "Transaction declined.";
+            switchView('view-fail');
+        }
     } catch(e) {
-      alert("Network Error.");
-      btn.innerHTML = originalText; btn.disabled = false;
+        closeModal();
+        document.getElementById('fail-reason').innerText = "Network Error. Check connection.";
+        switchView('view-fail');
+    }
+  }
+
+  // --- HISTORY LOGIC ---
+  async function showHistory() {
+    switchView('view-history');
+    const container = document.getElementById('history-container');
+    container.innerHTML = '<div style="text-align:center; padding:20px"><div class="spinner" style="border-color:#007AFF; border-top-color:transparent"></div></div>';
+
+    try {
+        const res = await fetch(`/api/user?phone=${USER.phone}&type=history`);
+        const data = await res.json();
+
+        if(data.length === 0) {
+            container.innerHTML = '<div style="text-align:center; padding:40px; color:#999">No transactions yet.</div>';
+            return;
+        }
+
+        let html = '';
+        data.forEach(t => {
+            const isCredit = t.status === 'credit';
+            const colorClass = isCredit ? 'status-credit' : (t.status === 'success' ? 'status-success' : 'status-failed');
+            const date = new Date(t.created_at).toLocaleDateString();
+            const title = isCredit ? 'Wallet Funding' : `${t.network || 'Data'} Purchase`;
+            const sign = isCredit ? '+' : '-';
+            const color = isCredit ? '#34C759' : '#000';
+            // Show new_balance or amount
+            const amtDisplay = Number(t.amount).toLocaleString();
+
+            html += `
+            <div class="hist-item">
+                <div class="hist-left">
+                    <div class="hist-title">${title}</div>
+                    <div class="hist-date">${date}</div>
+                    <div class="hist-status ${colorClass}">${t.status}</div>
+                </div>
+                <div class="hist-amount" style="color:${color}">${sign}₦${amtDisplay}</div>
+            </div>`;
+        });
+        container.innerHTML = html;
+    } catch(e) {
+        container.innerHTML = '<div style="text-align:center; color:red">Failed to load history.</div>';
     }
   }
 
   function showModal(title, html) {
     document.getElementById('modal').style.display = 'flex';
-    document.getElementById('modal-body').innerHTML = (title ? `<h2 style="margin-bottom:15px">${title}</h2>` : '') + html;
+    document.getElementById('modal-body').innerHTML = (title?`<h2>${title}</h2>`:'') + html;
   }
   function closeModal() { document.getElementById('modal').style.display = 'none'; }
+  function copyAcc() { navigator.clipboard.writeText(USER.account_number); alert("Copied!"); }
 </script>
 </body>
 </html>
-
-
