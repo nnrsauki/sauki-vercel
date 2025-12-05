@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Sauki Data</title>
+  <style>
+    /* Global Styles */
+    :root { 
+      --bg: #F2F2F7; --card: #fff; --text: #1C1C1E; --sub: #8E8E93;
+      --blue: #007AFF; --green: #34C759; --red: #FF3B30;
+      --radius: 16px;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; min-height: 100vh; display:flex; justify-content:center; }
+    .app { width: 100%; max-width: 500px; background: var(--bg); min-height: 100vh; position: relative; padding-bottom: 80px; }
+
+    /* Login Screen */
+    #view-login { display:flex; flex-direction:column; justify-content:center; padding:30px; height:100vh; text-align:center; background: #fff; }
+    .logo { width: 100px; height: 100px; border-radius: 20px; margin: 0 auto 25px; object-fit: cover; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    
+    /* Dashboard */
+    #view-dashboard { display:none; padding: 20px; }
+    .wallet-card { background: var(--blue); color: white; padding: 25px; border-radius: 24px; margin-bottom: 25px; box-shadow: 0 10px 30px rgba(0,122,255,0.3); }
+    .wallet-balance { font-size: 32px; font-weight: 700; margin: 5px 0 20px; }
+    .account-info { background: rgba(255,255,255,0.15); padding: 15px; border-radius: 12px; font-size: 14px; backdrop-filter: blur(5px); display:flex; justify-content:space-between; align-items:center; }
+    .copy-btn { background: #fff; color: var(--blue); border: none; padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
+
+    /* Networks */
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .net-card { background: var(--card); padding: 20px; border-radius: var(--radius); text-align: center; cursor: pointer; transition: 0.1s; }
+    .net-card:active { transform: scale(0.98); background: #eee; }
+    
+    /* Inputs */
+    .input-group { margin-bottom: 15px; text-align: left; }
+    .input { width: 100%; padding: 16px; background: #f0f0f5; border: none; border-radius: 14px; font-size: 16px; box-sizing: border-box; outline:none; }
+    .btn { width: 100%; padding: 18px; border: none; border-radius: 14px; font-size: 16px; font-weight: 600; cursor: pointer; color: #fff; background: var(--blue); }
+    .btn:disabled { opacity: 0.7; }
+
+    /* Modal */
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: flex-end; z-index: 100; }
+    .modal-content { background: #fff; width: 100%; border-radius: 24px 24px 0 0; padding: 30px 20px; animation: slideUp 0.3s; max-height: 80vh; overflow-y: auto; }
+    @keyframes slideUp { from {transform: translateY(100%)} to {transform: translateY(0)} }
+    
+    .spinner { width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite; display:inline-block; }
+    @keyframes spin { to {transform: rotate(360deg)} }
+  </style>
+</head>
+<body>
+
+<div class="app">
+  
+  <!-- VIEW 1: AUTH -->
+  <div id="view-login">
+    <img src="logo.jpg" class="logo" alt="Sauki Data Logo" onerror="this.src='https://via.placeholder.com/100?text=Sauki'">
+    <h2 style="margin-bottom:10px; font-size: 24px; font-weight: 700;">Welcome to Sauki Data</h2>
+    <p style="color:#888; margin-bottom:40px; font-size: 15px;">Secure. Fast. Automated.</p>
+    
+    <div id="step-1">
+      <input type="tel" id="login-phone" class="input" placeholder="Enter Phone Number (e.g. 081...)" style="text-align:center">
+      <button class="btn" style="margin-top:20px" onclick="checkUser()">Continue</button>
+    </div>
+
+    <div id="step-2" style="display:none">
+      <p style="margin-bottom:20px; font-size:16px; color:#34C759; font-weight:500" id="auth-msg"></p>
+      <input type="password" id="login-pin" class="input" placeholder="Enter 4-digit PIN" maxlength="4" style="text-align:center; letter-spacing:8px; font-size: 24px; font-weight: 700;">
+      <button class="btn" style="margin-top:20px" onclick="authAction()" id="auth-btn">Verify PIN</button>
+      <button onclick="location.reload()" style="margin-top:15px; border:none; background:none; color:#888; font-size:14px">Cancel</button>
+    </div>
+  </div>
+
+  <!-- VIEW 2: DASHBOARD -->
+  <div id="view-dashboard">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
+        <h2 style="margin:0">Dashboard</h2>
+        <img src="logo.jpg" style="width:30px; height:30px; border-radius:8px">
+    </div>
+
+    <div class="wallet-card">
+      <div style="font-size:13px; opacity:0.8">Available Balance</div>
+      <div class="wallet-balance" id="dash-bal">₦0.00</div>
+      
+      <div class="account-info">
+        <div>
+          <div style="font-size:10px; opacity:0.8; margin-bottom:2px">PERSONAL ACCOUNT</div>
+          <div style="font-weight:600; font-size:16px" id="dash-acc">Loading...</div>
+          <div style="font-size:11px" id="dash-bank">...</div>
+        </div>
+        <button class="copy-btn" onclick="copyAcc()">COPY</button>
+      </div>
+      <p style="font-size:11px; margin-top:10px; opacity:0.7; text-align:center">Transfer money to this account number to fund your wallet instantly.</p>
+    </div>
+
+    <h3 style="margin-bottom:15px">Buy Data</h3>
+    <div class="grid">
+      <div class="net-card" onclick="openPlans('mtn')">
+        <h3 style="color:#FFCC00; margin:0">MTN</h3>
+        <p style="font-size:12px; color:#888">SME / CG</p>
+      </div>
+      <div class="net-card" onclick="openPlans('glo')">
+        <h3 style="color:#34C759; margin:0">GLO</h3>
+        <p style="font-size:12px; color:#888">Cheap Data</p>
+      </div>
+      <div class="net-card" onclick="openPlans('airtel')">
+        <h3 style="color:#FF3B30; margin:0">AIRTEL</h3>
+        <p style="font-size:12px; color:#888">Fast</p>
+      </div>
+      <div class="net-card" onclick="openPlans('9mobile')">
+        <h3 style="color:#007AFF; margin:0">9MOBILE</h3>
+        <p style="font-size:12px; color:#888">Standard</p>
+      </div>
+    </div>
+
+    <button onclick="window.location.reload()" style="background:none; border:none; margin-top:40px; color:#888; width:100%">Logout</button>
+  </div>
+
+</div>
+
+<!-- MODAL -->
+<div class="modal" id="modal">
+  <div class="modal-content" id="modal-body"></div>
+</div>
+
+<script>
+  let USER = null;
+  let MODE = 'login'; // login or register
+  let SELECTED_PLAN = null;
+
+  // --- AUTH LOGIC ---
+  async function checkUser() {
+    const phone = document.getElementById('login-phone').value.trim();
+    if(phone.length < 10) return alert("Invalid Phone Number");
+    
+    const btn = document.querySelector('#step-1 button');
+    const originalText = btn.innerText;
+    btn.innerHTML = '<div class="spinner"></div>';
+    
+    try {
+      const res = await fetch(`/api/user?phone=${phone}`);
+      const data = await res.json();
+      
+      document.getElementById('step-1').style.display = 'none';
+      document.getElementById('step-2').style.display = 'block';
+      
+      if(data.exists) {
+        MODE = 'login';
+        document.getElementById('auth-msg').innerText = "Welcome back!";
+        document.getElementById('auth-btn').innerText = "Login";
+      } else {
+        MODE = 'register';
+        document.getElementById('auth-msg').innerText = "New Account! Create a 4-digit PIN.";
+        document.getElementById('auth-btn').innerText = "Create Account";
+      }
+    } catch(e) {
+      alert("Connection Error. Please check your internet.");
+      btn.innerText = originalText;
+    }
+  }
+
+  async function authAction() {
+    const phone = document.getElementById('login-phone').value.trim();
+    const pin = document.getElementById('login-pin').value.trim();
+    
+    if(pin.length !== 4) return alert("PIN must be 4 digits");
+    
+    const btn = document.getElementById('auth-btn');
+    btn.innerHTML = '<div class="spinner"></div>'; btn.disabled = true;
+
+    try {
+      const res = await fetch('/api/user', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ action: MODE, phone, pin })
+      });
+      const data = await res.json();
+
+      if(data.error) {
+        alert(data.error);
+        btn.innerText = "Try Again"; btn.disabled = false;
+        if(data.error.includes("found")) location.reload(); 
+        return;
+      }
+
+      if(MODE === 'register') {
+        alert("Account Created Successfully! Please Login now.");
+        location.reload();
+        return;
+      }
+
+      // Login Success
+      USER = data.data;
+      USER.pin = pin; // Keep pin in memory for transaction
+      initDashboard();
+
+    } catch(e) {
+      alert("Error: " + e.message);
+      btn.disabled = false;
+      btn.innerText = "Try Again";
+    }
+  }
+
+  function initDashboard() {
+    document.getElementById('view-login').style.display = 'none';
+    document.getElementById('view-dashboard').style.display = 'block';
+    
+    document.getElementById('dash-bal').innerText = `₦${Number(USER.balance).toLocaleString()}`;
+    document.getElementById('dash-acc').innerText = USER.account_number || "Generating...";
+    document.getElementById('dash-bank').innerText = USER.bank_name || "";
+  }
+
+  function copyAcc() {
+    if(!USER.account_number) return;
+    navigator.clipboard.writeText(USER.account_number);
+    alert("Account Number Copied!");
+  }
+
+  // --- DATA PURCHASE ---
+  async function openPlans(net) {
+    showModal("Loading Plans...", `<div style="text-align:center; padding: 20px"><div class="spinner" style="border-color:#007AFF; border-top-color:transparent"></div></div>`);
+    
+    try {
+        const res = await fetch(`/api/plans?network=${net}`);
+        const plans = await res.json();
+        
+        if(plans.length === 0) {
+        showModal(net.toUpperCase(), "<p style='text-align:center; color:#888'>No plans available at the moment.</p>");
+        return;
+        }
+
+        let html = `<h3 style="margin-bottom:15px">${net.toUpperCase()} Data</h3><div style="display:grid; gap:10px; max-height: 60vh; overflow-y:auto">`;
+        plans.forEach(p => {
+        html += `
+            <div onclick="selectPlan('${p.id}', ${p.price}, '${p.name}', '${net}')" 
+                style="display:flex; justify-content:space-between; align-items:center; padding:16px; background:#f9f9f9; border-radius:12px; cursor:pointer; border: 1px solid #eee;">
+            <b style="font-size:15px">${p.name}</b>
+            <span style="color:#007AFF; font-weight:600">₦${p.price}</span>
+            </div>`;
+        });
+        html += `</div><button onclick="closeModal()" style="margin-top:20px; width:100%; padding:15px; border:none; background:#eee; border-radius:10px; font-weight:600">Close</button>`;
+        
+        showModal("", html);
+    } catch(e) {
+        showModal("Error", "<p style='text-align:center'>Failed to load plans.</p>");
+    }
+  }
+
+  function selectPlan(id, price, name, net) {
+    SELECTED_PLAN = { id, price, name, net };
+    const html = `
+      <h3>Confirm Order</h3>
+      <div style="text-align:center; padding:20px; background:#f5f5f5; border-radius:12px; margin-bottom:20px">
+        <div style="font-size:28px; font-weight:700; color:#333">₦${price}</div>
+        <div style="color:#666; margin-top:5px">${net.toUpperCase()} ${name}</div>
+      </div>
+      
+      <div class="input-group">
+        <label style="font-size:12px; font-weight:600; color:#888; margin-bottom:5px; display:block">Beneficiary Phone</label>
+        <input id="ben-phone" type="tel" class="input" placeholder="081..." value="${USER.phone}">
+      </div>
+
+      <div style="margin-bottom:25px; font-size:14px; display:flex; gap:10px; align-items:center">
+         <input type="checkbox" id="is-ported" style="width:18px; height:18px"> <label for="is-ported">Ported Number (MNP)?</label>
+      </div>
+
+      <button onclick="processPurchase()" class="btn" id="pay-btn">Pay ₦${price}</button>
+      <button onclick="closeModal()" style="width:100%; padding:15px; background:none; border:none; color:#888; margin-top:5px">Cancel</button>
+    `;
+    showModal("", html);
+  }
+
+  async function processPurchase() {
+    const ben = document.getElementById('ben-phone').value;
+    const ported = document.getElementById('is-ported').checked;
+    
+    if(ben.length < 10) return alert("Invalid Phone Number");
+
+    const btn = document.getElementById('pay-btn');
+    const originalText = btn.innerText;
+    btn.innerHTML = '<div class="spinner"></div> Processing...'; btn.disabled = true;
+
+    try {
+      const res = await fetch('/api/purchase', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          phone: USER.phone,
+          pin: USER.pin,
+          plan_id: SELECTED_PLAN.id,
+          beneficiary: ben,
+          ported: ported
+        })
+      });
+      
+      const result = await res.json();
+      
+      if(result.success) {
+        // Update local balance
+        USER.balance = result.new_balance;
+        document.getElementById('dash-bal').innerText = `₦${Number(USER.balance).toLocaleString()}`;
+        
+        showModal("Transaction Successful", `
+          <div style="text-align:center; padding:20px">
+            <div style="font-size:50px; margin-bottom:10px">✅</div>
+            <h3 style="color:#34C759">Success!</h3>
+            <p style="color:#555; line-height:1.5">Data plan <b>${SELECTED_PLAN.name}</b> has been sent to <b>${ben}</b>.</p>
+            <button onclick="closeModal()" class="btn" style="margin-top:20px">Done</button>
+          </div>
+        `);
+      } else {
+        alert(result.error || "Transaction Failed");
+        btn.innerHTML = originalText; btn.disabled = false;
+      }
+    } catch(e) {
+      alert("Network Error. Please try again.");
+      btn.innerHTML = originalText; btn.disabled = false;
+    }
+  }
+
+  // --- UTILS ---
+  function showModal(title, html) {
+    document.getElementById('modal').style.display = 'flex';
+    document.getElementById('modal-body').innerHTML = (title ? `<h2 style="margin-bottom:15px">${title}</h2>` : '') + html;
+  }
+  function closeModal() {
+    document.getElementById('modal').style.display = 'none';
+  }
+</script>
+</body>
+</html>
+
+
+  
