@@ -65,6 +65,7 @@
       <h3>Menu</h3>
       <button class="btn-primary" style="background:transparent; text-align:left" onclick="showTab('plans')">Manage Plans</button>
       <button class="btn-primary" style="background:transparent; text-align:left" onclick="showTab('tx')">Transactions</button>
+      <button class="btn-primary" style="background:transparent; text-align:left; color:#f64e60" onclick="showTab('complaints')">Complaints</button>
       <button class="btn-primary" style="background:transparent; text-align:left; color:#FFA800" onclick="showTab('msg')">Broadcast Message</button>
       <div style="margin-top:40px; border-top:1px solid #444; padding-top:20px;">
         <button class="btn-danger" onclick="location.reload()">Logout</button>
@@ -111,6 +112,18 @@
       </table>
     </main>
 
+    <!-- COMPLAINTS TAB (NEW) -->
+    <main class="main" id="tab-complaints" style="display:none">
+        <div style="display:flex; justify-content:space-between;">
+            <h2>User Complaints</h2>
+            <button onclick="loadComplaints()" style="background:#444; color:#fff; padding:8px 15px; border-radius:6px; border:none">Refresh</button>
+        </div>
+        <table>
+            <thead><tr><th>Time</th><th>Name</th><th>Phone</th><th>Message</th><th>Action</th></tr></thead>
+            <tbody id="complaints-table"></tbody>
+        </table>
+    </main>
+
     <!-- MESSAGE TAB -->
     <main class="main" id="tab-msg" style="display:none">
         <h2>System Broadcast</h2>
@@ -135,18 +148,19 @@
           document.getElementById('login-modal').style.display = 'none';
           document.getElementById('app-ui').style.display = 'grid';
           loadPlans();
-          loadMessage(); // Load current message
+          loadMessage(); 
         } else { alert("Access Denied"); }
       } catch(e) { alert("Connection Error"); }
     }
 
     function showTab(t) {
-      ['plans', 'tx', 'msg'].forEach(x => document.getElementById('tab-'+x).style.display = 'none');
+      ['plans', 'tx', 'msg', 'complaints'].forEach(x => document.getElementById('tab-'+x).style.display = 'none');
       document.getElementById('tab-' + t).style.display = 'block';
       if(t === 'tx') loadTx();
+      if(t === 'complaints') loadComplaints();
     }
 
-    // --- PLANS (EDITING ADDED) ---
+    // --- PLANS ---
     function openEdit(plan = null) {
       const f = document.getElementById('edit-form');
       f.style.display = 'block';
@@ -188,7 +202,7 @@
 
     async function savePlan() {
       const body = {
-        action: 'create', // Backend 'create' is an Upsert
+        action: 'create', 
         id: document.getElementById('p-id').value,
         network: document.getElementById('p-net').value,
         name: document.getElementById('p-name').value,
@@ -228,6 +242,34 @@
         loadTx();
     }
 
+    // --- COMPLAINTS (NEW) ---
+    async function loadComplaints() {
+        const res = await fetch('/api/admin?action=complaints', { headers: { 'Authorization': authHeader } });
+        const data = await res.json();
+        const rows = data.map(c => `
+            <tr>
+                <td style="font-size:0.8rem; color:#888">${new Date(c.created_at).toLocaleString()}</td>
+                <td>${c.name || 'Anonymous'}</td>
+                <td><a href="tel:${c.phone}" style="color:var(--accent); text-decoration:none">${c.phone}</a></td>
+                <td style="max-width:300px; word-wrap:break-word;">${c.message}</td>
+                <td>
+                    <button class="btn-danger" style="padding:4px 8px; font-size:0.75rem" onclick="deleteComplaint('${c.id}')">Resolve / Delete</button>
+                </td>
+            </tr>
+        `).join('');
+        document.getElementById('complaints-table').innerHTML = rows.length ? rows : '<tr><td colspan="5" style="text-align:center; padding:20px">No complaints yet</td></tr>';
+    }
+
+    async function deleteComplaint(id) {
+        if(!confirm("Mark this as resolved and delete?")) return;
+        await fetch('/api/admin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
+            body: JSON.stringify({ action: 'delete_complaint', id })
+        });
+        loadComplaints();
+    }
+
     // --- BROADCAST MESSAGE ---
     async function loadMessage() {
         const res = await fetch('/api/status');
@@ -262,3 +304,5 @@
   </script>
 </body>
 </html>
+
+
