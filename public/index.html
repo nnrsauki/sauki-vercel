@@ -46,6 +46,7 @@
     .sheet-handle { width: 40px; height: 5px; background: #e5e5ea; border-radius: 10px; margin: 0 auto 20px; }
     
     .input-field { width: 100%; padding: 16px; background: #f2f2f7; border: none; border-radius: 16px; margin-bottom: 12px; font-size: 1rem; outline: none; }
+    textarea.input-field { resize: vertical; min-height: 100px; font-family:inherit; }
     .btn-primary { width: 100%; padding: 18px; background: var(--primary); color: #fff; border: none; border-radius: 18px; font-weight: 700; font-size: 1rem; cursor: pointer; box-shadow: 0 8px 20px rgba(0,122,255,0.25); }
     .btn-secondary { width: 100%; padding: 16px; background: transparent; color: var(--text-gray); border: none; font-weight: 600; cursor: pointer; margin-top: 5px; }
     
@@ -53,15 +54,6 @@
     .loader { width: 24px; height: 24px; border: 3px solid #eee; border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s infinite linear; margin: 0 auto; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Efficiency Bars */
-    .eff-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f5f5f5; }
-    .eff-meta { display: flex; flex-direction: column; }
-    .eff-cap { font-weight: bold; font-size: 0.9rem; }
-    .eff-badge { font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; display: inline-block; width: fit-content; margin-top: 2px; }
-    .eff-val { font-weight: bold; }
-    .good { color: #10b981; background: rgba(16, 185, 129, 0.1); }
-    .mid { color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
-    .bad { color: #ef4444; background: rgba(239, 68, 68, 0.1); }
     .transfer-box { background: #f9f9f9; border: 1px dashed #ccc; border-radius: 16px; padding: 20px; text-align: center; margin: 15px 0 25px 0; }
     .account-num { font-size: 2rem; font-weight: 800; color: #000; letter-spacing: 1px; margin: 5px 0 0 0; user-select: all; }
     .bank-name { font-size: 0.9rem; color: var(--text-gray); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
@@ -103,9 +95,9 @@
           <span style="font-size:1.5rem">🎁</span> 
           <span>Giveaway</span>
       </div>
-      <div class="btn-glass" onclick="checkEfficiency()">
-          <span style="font-size:1.5rem">📊</span> 
-          <span>Net Health</span>
+      <div class="btn-glass" onclick="openComplaint()">
+          <span style="font-size:1.5rem">💬</span> 
+          <span>Complaint</span>
       </div>
       <div class="btn-glass" onclick="subscribe()">
           <span style="font-size:1.5rem">🔔</span> 
@@ -148,61 +140,59 @@
         } catch(e) {}
     });
 
-    // --- NETWORK HEALTH CHECK ---
-    async function checkEfficiency() {
-        showSheet(`<div class="loader"></div><p style="text-align:center; margin-top:10px">Scanning Networks...</p>`);
+    // --- COMPLAINT FORM ---
+    function openComplaint() {
+        showSheet(`
+            <h3 style="text-align:center; margin-bottom:15px">Register Complaint</h3>
+            <p style="text-align:center; font-size:0.9rem; color:#666; margin-bottom:20px">
+                Having issues? Let us know and we'll fix it.
+            </p>
+            <input class="input-field" id="c-name" placeholder="Your Name (Optional)">
+            <input class="input-field" id="c-phone" type="tel" placeholder="Phone Number (Required)">
+            <textarea class="input-field" id="c-msg" placeholder="Describe your issue..."></textarea>
+            
+            <button class="btn-primary" onclick="submitComplaint()">Submit Complaint</button>
+            <button class="btn-secondary" onclick="closeSheet()">Cancel</button>
+        `);
+    }
+
+    async function submitComplaint() {
+        const name = document.getElementById('c-name').value;
+        const phone = document.getElementById('c-phone').value;
+        const msg = document.getElementById('c-msg').value;
+
+        if(!phone || !msg) return alert("Please enter phone and message");
+
+        // UI Loading State
+        const btn = document.querySelector('.btn-primary');
+        const oldText = btn.innerText;
+        btn.innerText = "Submitting...";
+        btn.disabled = true;
+
         try {
-            const res = await fetch('/api/efficiency');
+            const res = await fetch('/api/complaints', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, phone, message: msg })
+            });
             const data = await res.json();
-            
-            if(data.error) throw new Error(data.error + (data.details ? ": " + data.details : ""));
 
-            let html = `<h3 style="text-align:center; margin-bottom:15px">Network Efficiency</h3><div style="max-height:60vh; overflow-y:auto">`;
-            
-            let hasData = false;
-            for (const [net, plans] of Object.entries(data)) {
-                if(net === 'ok' || !Array.isArray(plans)) continue;
-                
-                hasData = true;
-                html += `<div style="background:#f9f9f9; padding:10px; border-radius:12px; margin-bottom:15px">`;
-                html += `<div style="font-weight:800; text-transform:uppercase; color:#888; font-size:0.8rem; margin-bottom:5px">${net}</div>`;
-                
-                plans.forEach(p => {
-                    const percent = p.efficiency_percent || 0;
-                    const label = p.efficiency_label || 'Unknown';
-                    let cls = 'bad';
-                    if (percent >= 95) cls = 'good';
-                    else if (percent >= 70) cls = 'mid';
-
-                    let cap = p.data_capacity + "GB";
-                    if(p.data_capacity < 1) cap = (p.data_capacity * 1000) + "MB";
-
-                    html += `
-                    <div class="eff-row">
-                        <div class="eff-meta">
-                            <span class="eff-cap">${cap}</span>
-                            <span class="eff-badge ${cls}">${label}</span>
-                        </div>
-                        <div class="eff-val" style="color:${cls === 'good' ? '#10b981' : (cls === 'mid' ? '#f59e0b' : '#ef4444')}">${percent}%</div>
-                    </div>`;
-                });
-                html += `</div>`;
+            if(data.success) {
+                showSheet(`
+                    <div style="text-align:center">
+                        <div style="font-size:40px; margin-bottom:10px">✅</div>
+                        <h3>Complaint Received</h3>
+                        <p style="color:#666; margin:10px 0">We will review your issue shortly.</p>
+                        <button class="btn-primary" onclick="closeSheet()">Done</button>
+                    </div>
+                `);
+            } else {
+                throw new Error(data.error || "Failed");
             }
-
-            if (!hasData) html += `<p style="text-align:center; color:#999">No scan data available.</p>`;
-            
-            html += `</div><button class="btn-secondary" onclick="closeSheet()">Close</button>`;
-            showSheet(html);
-
         } catch(e) {
-            console.error(e);
-            showSheet(`
-                <div style="text-align:center">
-                    <h3 style="color:red; margin-bottom:10px">Scan Failed</h3>
-                    <p style="color:#666; font-size:0.85rem">${e.message || "Could not fetch efficiency data."}</p>
-                    <button class="btn-secondary" onclick="closeSheet()">Close</button>
-                </div>
-            `);
+            alert("Error: " + e.message);
+            btn.innerText = oldText;
+            btn.disabled = false;
         }
     }
 
