@@ -55,7 +55,7 @@
       font-weight: 800;
       color: #000;
       letter-spacing: 1px;
-      margin: 5px 0;
+      margin: 5px 0 0 0; /* Reduced bottom margin */
       user-select: all;
     }
     .bank-name {
@@ -64,6 +64,16 @@
       text-transform: uppercase;
       letter-spacing: 1px;
       font-weight: 600;
+    }
+    .beneficiary-name {
+      font-size: 0.85rem;
+      color: #000;
+      font-weight: 600;
+      margin: 5px 0 10px 0;
+      background: #eee;
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 8px;
     }
     .copy-toast {
       position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
@@ -190,8 +200,8 @@
                     email: "saukidatalinks@gmail.com",
                     phone_number: ph,
                     name: nm,
-                    plan_id: currentPlan.id, // Added this
-                    ported: pt               // Added this
+                    plan_id: currentPlan.id,
+                    ported: pt
                 })
             });
 
@@ -231,6 +241,8 @@
                 <div class="transfer-box" onclick="copyToClipboard('${accNum}')">
                     <div class="bank-name">${bankName}</div>
                     <div class="account-num">${accNum}</div>
+                    <!-- STATIC BENEFICIARY NAME -->
+                    <div class="beneficiary-name">Abdullahi Adam Usman FLW</div>
                     <div style="font-size:0.8rem; color:var(--primary); margin-top:5px">Tap to Copy</div>
                 </div>
 
