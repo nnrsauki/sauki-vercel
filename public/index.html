@@ -41,22 +41,24 @@
     .loader { width: 24px; height: 24px; border: 3px solid #eee; border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s infinite linear; margin: 0 auto; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* --- FLUTTERWAVE IFRAME COMPRESSED FIX --- */
+    /* --- FLUTTERWAVE IFRAME FIXED COMPRESSION --- */
     iframe[name="checkout"], iframe[src*="flutterwave"] {
         position: fixed !important;
         top: 50% !important;
         left: 50% !important;
-        /* "Compress" content by scaling it down and centering */
-        transform: translate(-50%, -50%) scale(0.9) !important; 
-        width: 95% !important;
-        max-width: 420px !important;
-        height: 70vh !important; /* Shorter dedicated shape */
-        max-height: 620px !important;
-        border-radius: 26px !important;
-        box-shadow: 0 40px 80px rgba(0, 0, 0, 0.35) !important;
-        border: 2px solid rgba(255,255,255,0.5) !important;
-        background: #fff !important;
+        /* Force large dimensions so content fits WITHOUT scrollbars */
+        width: 400px !important;
+        height: 750px !important;
+        /* Scale down the entire iframe to fit in the viewport */
+        transform: translate(-50%, -50%) scale(0.75) !important;
+        transform-origin: center center !important;
+        border-radius: 25px !important;
+        box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5) !important;
+        border: none !important;
+        background: transparent !important;
         z-index: 2147483647 !important;
+        display: block !important;
+        inset: auto !important;
     }
   </style>
 </head>
