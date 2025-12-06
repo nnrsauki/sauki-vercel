@@ -5,49 +5,104 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Sauki Data</title>
   <style>
-    :root { --bg-gradient: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%); --glass-surface: rgba(255, 255, 255, 0.55); --glass-border: rgba(255, 255, 255, 0.4); --primary: #007AFF; --text-dark: #1d1d1f; --text-gray: #86868b; --radius-l: 26px; --radius-m: 18px; }
+    :root { 
+        --bg-gradient: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%); 
+        --glass-surface: rgba(255, 255, 255, 0.55); 
+        --glass-border: rgba(255, 255, 255, 0.4); 
+        --primary: #007AFF; 
+        --text-dark: #1d1d1f; 
+        --text-gray: #86868b; 
+        --radius-l: 26px; 
+        --radius-m: 18px; 
+    }
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; background: var(--bg-gradient); color: var(--text-dark); height: 100vh; overflow: hidden; display: flex; flex-direction: column; padding-bottom: env(safe-area-inset-bottom); }
+    
+    /* NO SCROLL FIX */
+    body { 
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; 
+        background: var(--bg-gradient); 
+        color: var(--text-dark); 
+        height: 100vh; 
+        height: 100dvh; /* Dynamic Viewport Height for Mobile */
+        overflow: hidden; /* STRICTLY NO SCROLL */
+        display: flex; 
+        flex-direction: column; 
+        padding-bottom: env(safe-area-inset-bottom); 
+    }
+
     .status-bar { height: 44px; padding: 0 20px; padding-top: max(5px, env(safe-area-inset-top)); display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; font-weight: 600; color: var(--text-gray); z-index: 10; }
     .status-pill { background: rgba(255,255,255,0.4); padding: 4px 12px; border-radius: 20px; backdrop-filter: blur(10px); }
-    .app-screen { flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; padding: 10px 24px; max-width: 500px; margin: 0 auto; width: 100%; position: relative; }
     
-    #announcement-banner {
-        display: none; background: #FFF4CE; color: #664d03; border: 1px solid #ffe69c;
-        padding: 10px; border-radius: 12px; font-size: 0.85rem; text-align: center;
-        margin-bottom: 10px; animation: slideDown 0.5s ease;
+    .app-screen { 
+        flex: 1; 
+        display: flex; 
+        flex-direction: column; 
+        justify-content: space-evenly; /* Distribute space evenly */
+        padding: 10px 24px; 
+        max-width: 500px; 
+        margin: 0 auto; 
+        width: 100%; 
+        position: relative; 
     }
-    @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-
-    .header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
-    .header img { width: 44px; height: 44px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-    .brand-name { font-weight: 800; font-size: 1.2rem; letter-spacing: -0.5px; }
-    .hero { text-align: center; }
-    .hero h2 { font-size: 1.8rem; font-weight: 800; line-height: 1.1; margin-bottom: 5px; background: -webkit-linear-gradient(90deg, #333, #000); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .hero p { font-size: 0.9rem; color: var(--text-gray); }
     
-    .network-row { display: flex; justify-content: space-between; gap: 12px; }
-    .net-card { flex: 1; background: var(--glass-surface); border: 1px solid var(--glass-border); backdrop-filter: blur(20px); padding: 15px 10px; border-radius: var(--radius-m); display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(0,0,0,0.02); transition: transform 0.2s; cursor: pointer; }
+    /* PREMIUM BROADCAST UI */
+    #announcement-banner {
+        display: none;
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        margin: 0 24px;
+        background: rgba(255, 255, 255, 0.65);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255,255,255,0.6);
+        color: #d9480f; /* Orange-Red for visibility */
+        padding: 8px 16px;
+        border-radius: 30px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-align: center;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        z-index: 50;
+        animation: floatIn 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    @keyframes floatIn { from { opacity: 0; transform: translateY(-20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+    .header { display: flex; align-items: center; gap: 12px; margin-bottom: 5px; }
+    .header img { width: 50px; height: 50px; border-radius: 14px; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+    .brand-name { font-weight: 800; font-size: 1.3rem; letter-spacing: -0.5px; }
+    
+    .hero { text-align: center; margin-top: -10px; }
+    .hero h2 { font-size: 2rem; font-weight: 800; line-height: 1; margin-bottom: 8px; background: -webkit-linear-gradient(90deg, #1c1c1e, #3a3a3c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero p { font-size: 0.95rem; color: var(--text-gray); font-weight: 500; }
+    
+    .network-row { display: flex; justify-content: space-between; gap: 12px; margin: 10px 0; }
+    .net-card { flex: 1; background: var(--glass-surface); border: 1px solid var(--glass-border); backdrop-filter: blur(20px); padding: 18px 10px; border-radius: var(--radius-m); display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(0,0,0,0.02); transition: transform 0.2s; cursor: pointer; }
     .net-card:active { transform: scale(0.95); background: rgba(255,255,255,0.8); }
-    .net-card img { width: 45px; height: 45px; margin-bottom: 8px; object-fit: contain; }
+    .net-card img { width: 48px; height: 48px; margin-bottom: 8px; object-fit: contain; }
     .net-card span { font-weight: 600; font-size: 0.85rem; }
     
-    .action-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-    .btn-glass { background: rgba(255,255,255,0.35); border: 1px solid rgba(255,255,255,0.5); padding: 12px; border-radius: var(--radius-m); font-weight: 600; color: var(--primary); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; font-size: 0.8rem; cursor: pointer; text-align:center; }
+    .action-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .btn-glass { background: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.6); padding: 14px; border-radius: var(--radius-m); font-weight: 600; color: var(--primary); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font-size: 0.75rem; cursor: pointer; text-align:center; transition: background 0.2s; }
+    .btn-glass:active { background: rgba(255,255,255,0.7); }
     
-    .floating-footer { background: rgba(255, 255, 255, 0.45); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); border: 1px solid rgba(255, 255, 255, 0.6); border-radius: 28px; padding: 15px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.05); margin-top: 10px; }
-    .footer-icons img { height: 24px; margin: 0 8px; opacity: 0.8; }
-    .footer-text { font-size: 0.7rem; color: var(--text-gray); margin-top: 5px; font-weight: 500; }
+    .floating-footer { background: rgba(255, 255, 255, 0.45); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); border: 1px solid rgba(255, 255, 255, 0.6); border-radius: 28px; padding: 12px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.05); }
+    .footer-icons img { height: 20px; margin: 0 8px; opacity: 0.7; grayscale: 100%; }
+    .footer-text { font-size: 0.65rem; color: var(--text-gray); margin-top: 4px; font-weight: 600; }
     
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.1); backdrop-filter: blur(5px); z-index: 2000; display: none; align-items: flex-end; justify-content: center; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.1); backdrop-filter: blur(8px); z-index: 2000; display: none; align-items: flex-end; justify-content: center; }
     .modal-overlay.active { display: flex; }
     .sheet { background: #fff; width: 100%; max-width: 500px; border-radius: 32px 32px 0 0; padding: 24px; box-shadow: 0 -10px 50px rgba(0,0,0,0.15); animation: slideUp 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275); max-height: 85vh; overflow-y: auto; }
     @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
     .sheet-handle { width: 40px; height: 5px; background: #e5e5ea; border-radius: 10px; margin: 0 auto 20px; }
     
-    .input-field { width: 100%; padding: 16px; background: #f2f2f7; border: none; border-radius: 16px; margin-bottom: 12px; font-size: 1rem; outline: none; }
-    textarea.input-field { resize: vertical; min-height: 100px; font-family:inherit; }
-    .btn-primary { width: 100%; padding: 18px; background: var(--primary); color: #fff; border: none; border-radius: 18px; font-weight: 700; font-size: 1rem; cursor: pointer; box-shadow: 0 8px 20px rgba(0,122,255,0.25); }
+    .input-field { width: 100%; padding: 16px; background: #f2f2f7; border: none; border-radius: 16px; margin-bottom: 12px; font-size: 1rem; outline: none; transition: 0.2s; }
+    .input-field:focus { background: #e5e5ea; }
+    textarea.input-field { resize: none; min-height: 100px; font-family:inherit; }
+    .btn-primary { width: 100%; padding: 18px; background: var(--primary); color: #fff; border: none; border-radius: 18px; font-weight: 700; font-size: 1rem; cursor: pointer; box-shadow: 0 8px 20px rgba(0,122,255,0.25); transition: transform 0.1s; }
+    .btn-primary:active { transform: scale(0.98); }
     .btn-secondary { width: 100%; padding: 16px; background: transparent; color: var(--text-gray); border: none; font-weight: 600; cursor: pointer; margin-top: 5px; }
     
     .plan-list-item { display: flex; justify-content: space-between; padding: 16px; border-bottom: 1px solid #f5f5f5; cursor: pointer; }
@@ -58,7 +113,7 @@
     .account-num { font-size: 2rem; font-weight: 800; color: #000; letter-spacing: 1px; margin: 5px 0 0 0; user-select: all; }
     .bank-name { font-size: 0.9rem; color: var(--text-gray); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
     .beneficiary-name { font-size: 0.85rem; color: #000; font-weight: 600; margin: 5px 0 10px 0; background: #eee; display: inline-block; padding: 4px 10px; border-radius: 8px; }
-    .copy-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: #fff; padding: 8px 16px; border-radius: 20px; font-size: 0.8rem; pointer-events: none; opacity: 0; transition: opacity 0.3s; }
+    .copy-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: #fff; padding: 8px 16px; border-radius: 20px; font-size: 0.8rem; pointer-events: none; opacity: 0; transition: opacity 0.3s; z-index: 3000; }
     .copy-toast.show { opacity: 1; }
   </style>
 </head>
@@ -70,20 +125,24 @@
       <a href="https://wa.me/2348164135836" style="color:var(--primary); text-decoration:none">WhatsApp</a>
     </div>
   </div>
+  
   <div class="app-screen">
+    <!-- Premium Broadcast -->
     <div id="announcement-banner"></div>
     
     <div class="header">
-      <img src="logo.png" alt="Logo" onerror="this.src='https://via.placeholder.com/44'">
+      <img src="logo.png" alt="Logo" onerror="this.src='https://via.placeholder.com/50'">
       <div>
         <div class="brand-name">Sauki Data</div>
         <div style="font-size:0.75rem; color:var(--text-gray); font-weight:500;">Government Certified by SMEDAN</div>
       </div>
     </div>
+    
     <div class="hero">
       <h2>The Smartest Way<br>to Buy Data.</h2>
-      <p>Cheaper rates. Simpler process.<br>Instant Delivery.</p>
+      <p>Cheaper rates. Simpler process.</p>
     </div>
+    
     <div class="network-row">
       <div class="net-card" onclick="fetchPlans('mtn')"><img src="mtn.png" alt="MTN" onerror="this.style.background='#FFCC00'"><span>MTN</span></div>
       <div class="net-card" onclick="fetchPlans('glo')"><img src="glo.png" alt="Glo" onerror="this.style.background='#00C300'"><span>Glo</span></div>
@@ -107,7 +166,7 @@
 
     <div class="floating-footer">
       <div class="footer-icons"><img src="smedan.png" alt="SMEDAN" onerror="this.style.display='none'"><img src="coat.png" alt="NIGERIA" onerror="this.style.display='none'"></div>
-      <div class="footer-text">&copy; 2025 Sauki Data Links<br>Developed with ❤️ by Abdallah Nangere</div>
+      <div class="footer-text">&copy; 2025 Sauki Data Links<br>Developed by Abdallah Nangere</div>
     </div>
   </div>
   
@@ -134,7 +193,7 @@
             const data = await res.json();
             if(data.message && data.message.trim() !== "") {
                 const b = document.getElementById('announcement-banner');
-                b.innerText = data.message;
+                b.innerHTML = "📢 " + data.message;
                 b.style.display = 'block';
             }
         } catch(e) {}
@@ -145,7 +204,7 @@
         showSheet(`
             <h3 style="text-align:center; margin-bottom:15px">Register Complaint</h3>
             <p style="text-align:center; font-size:0.9rem; color:#666; margin-bottom:20px">
-                Having issues? Let us know and we'll fix it.
+                Having issues? We are here to help.
             </p>
             <input class="input-field" id="c-name" placeholder="Your Name (Optional)">
             <input class="input-field" id="c-phone" type="tel" placeholder="Phone Number (Required)">
@@ -163,18 +222,24 @@
 
         if(!phone || !msg) return alert("Please enter phone and message");
 
-        // UI Loading State
         const btn = document.querySelector('.btn-primary');
         const oldText = btn.innerText;
         btn.innerText = "Submitting...";
         btn.disabled = true;
 
         try {
+            // NOTE: Ensure complaints.js is deployed to /api/complaints
             const res = await fetch('/api/complaints', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name, phone, message: msg })
             });
+            
+            if(!res.ok) {
+                const text = await res.text();
+                throw new Error(text.includes('<!DOCTYPE') ? "Server Error (404/500)" : text);
+            }
+            
             const data = await res.json();
 
             if(data.success) {
@@ -272,7 +337,8 @@
         const accNum = data.account_number || data.account || "0000000000";
         const bankName = data.bank_name || data.bank || "Unknown Bank";
         const amount = data.amount || currentPlan.price;
-        const accName = data.account_name || "Sauki Data";
+        // DYNAMIC ACCOUNT NAME FROM BACKEND (Prioritized)
+        const accName = data.account_name || data.note || "Sauki Data";
 
         const html = `
             <div style="text-align:center">
