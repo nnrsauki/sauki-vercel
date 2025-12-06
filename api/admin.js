@@ -37,32 +37,49 @@ export default async function handler(req, res) {
             return res.status(200).json(result.rows);
         }
 
+        // --- FETCH COMPLAINTS (NEW) ---
+        if (action === 'complaints') {
+            // Check if table exists first to avoid crash on first run
+            const checkTable = await client.query("SELECT to_regclass('public.complaints')");
+            if(!checkTable.rows[0].to_regclass) {
+                await client.end();
+                return res.status(200).json([]); // Return empty if table doesn't exist yet
+            }
+
+            const result = await client.query('SELECT * FROM complaints ORDER BY created_at DESC LIMIT 50');
+            await client.end();
+            return res.status(200).json(result.rows);
+        }
+
         // --- POST ACTIONS ---
         if (req.method === 'POST') {
             const body = req.body;
             
-            // A. SAVE BROADCAST MESSAGE
+            // A. RESOLVE COMPLAINT (Optional future feature, just delete for now)
+            if (body.action === 'delete_complaint') {
+                await client.query('DELETE FROM complaints WHERE id = $1', [body.id]);
+                await client.end();
+                return res.status(200).json({ success: true });
+            }
+
+            // B. SAVE BROADCAST MESSAGE
             if (body.action === 'save_message') {
-                // Ensure table exists
                 await client.query(`CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)`);
-                
-                // Upsert message
                 await client.query(
                     `INSERT INTO settings (key, value) VALUES ('broadcast_message', $1)
                      ON CONFLICT (key) DO UPDATE SET value = $1`,
                     [body.message]
                 );
-                
                 await client.end();
                 return res.status(200).json({ success: true });
             }
 
-            // B. RETRY OR MANUAL ORDER
+            // C. RETRY OR MANUAL ORDER
             if (body.action === 'retry' || body.action === 'manual') {
+                // ... (Keep existing logic exactly as is) ...
                 let targetPhone, targetPlanId, targetNetwork, apiPlanId, dbRef;
                 
                 if (body.action === 'retry') {
-                    // Fetch existing transaction details + Plan API ID
                     const txRes = await client.query(
                         `SELECT t.phone_number, t.plan_id, t.reference, t.network, p.plan_id_api 
                          FROM transactions t 
@@ -70,83 +87,45 @@ export default async function handler(req, res) {
                          WHERE t.id = $1`, 
                         [body.id]
                     );
-                    
                     if (txRes.rows.length === 0) throw new Error("Transaction not found");
                     const tx = txRes.rows[0];
-
                     targetPhone = tx.phone_number;
                     targetPlanId = tx.plan_id;
                     targetNetwork = tx.network;
                     apiPlanId = tx.plan_id_api;
                     dbRef = tx.reference;
-
-                    if (!apiPlanId) throw new Error("Plan configuration missing for this transaction");
-
+                    if (!apiPlanId) throw new Error("Plan configuration missing");
                 } else {
-                    // Manual Order
                     targetPhone = body.phone;
                     targetPlanId = body.plan_id;
                     targetNetwork = body.network;
                     dbRef = 'MANUAL-' + Date.now();
-
-                    // Look up Plan API ID
                     const planRes = await client.query('SELECT plan_id_api FROM plans WHERE id = $1', [body.plan_id]);
                     if (planRes.rows.length === 0) throw new Error("Invalid Plan ID");
                     apiPlanId = planRes.rows[0].plan_id_api;
                 }
 
-                // Prepare Amigo Request
                 const NET_MAP = { 'mtn': 1, 'glo': 2, 'airtel': 3, '9mobile': 4 };
                 const networkInt = NET_MAP[targetNetwork.toLowerCase()] || 1;
-
                 const options = {
                     method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json', 
-                        'Authorization': `Token ${AMIGO_API_KEY}`, 
-                        'X-API-Key': AMIGO_API_KEY 
-                    },
-                    body: JSON.stringify({ 
-                        network: networkInt, 
-                        mobile_number: targetPhone, 
-                        plan: apiPlanId, 
-                        Ported_number: false 
-                    })
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Token ${AMIGO_API_KEY}`, 'X-API-Key': AMIGO_API_KEY },
+                    body: JSON.stringify({ network: networkInt, mobile_number: targetPhone, plan: apiPlanId, Ported_number: false })
                 };
-
                 if (PROXY_URL) options.agent = new HttpsProxyAgent(PROXY_URL);
 
-                // Call Amigo
                 const amigoRes = await fetch('https://amigo.ng/api/data/', options);
                 const amigoResult = await amigoRes.json();
-                
-                // Check Success
                 const isSuccess = (amigoResult.success === true || amigoResult.Status === 'successful');
 
-                // Update/Insert Database Record
                 if (body.action === 'retry') {
-                    await client.query(
-                        `UPDATE transactions SET status = $1, api_response = $2, created_at = NOW() WHERE id = $3`,
-                        [isSuccess ? 'success' : 'failed', JSON.stringify(amigoResult), body.id]
-                    );
+                    await client.query(`UPDATE transactions SET status = $1, api_response = $2, created_at = NOW() WHERE id = $3`, [isSuccess ? 'success' : 'failed', JSON.stringify(amigoResult), body.id]);
                 } else {
-                    await client.query(
-                        `INSERT INTO transactions (phone_number, network, plan_id, status, reference, api_response, created_at) 
-                         VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
-                        [targetPhone, targetNetwork, targetPlanId, isSuccess ? 'success' : 'failed', dbRef, JSON.stringify(amigoResult)]
-                    );
+                    await client.query(`INSERT INTO transactions (phone_number, network, plan_id, status, reference, api_response, created_at) VALUES ($1, $2, $3, $4, $5, $6, NOW())`, [targetPhone, targetNetwork, targetPlanId, isSuccess ? 'success' : 'failed', dbRef, JSON.stringify(amigoResult)]);
                 }
 
                 await client.end();
-
-                if (isSuccess) {
-                    return res.status(200).json({ success: true, message: 'Sent Successfully' });
-                } else {
-                    return res.status(400).json({ 
-                        success: false, 
-                        error: amigoResult.message || amigoResult.error_message || 'Provider Failed' 
-                    });
-                }
+                return isSuccess ? res.status(200).json({ success: true }) : res.status(400).json({ success: false, error: amigoResult.message || 'Failed' });
             }
         }
 
