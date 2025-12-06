@@ -12,7 +12,6 @@
     .status-pill { background: rgba(255,255,255,0.4); padding: 4px 12px; border-radius: 20px; backdrop-filter: blur(10px); }
     .app-screen { flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; padding: 10px 24px; max-width: 500px; margin: 0 auto; width: 100%; position: relative; }
     
-    /* Announcement Banner */
     #announcement-banner {
         display: none; background: #FFF4CE; color: #664d03; border: 1px solid #ffe69c;
         padding: 10px; border-radius: 12px; font-size: 0.85rem; text-align: center;
@@ -63,7 +62,6 @@
     .good { color: #10b981; background: rgba(16, 185, 129, 0.1); }
     .mid { color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
     .bad { color: #ef4444; background: rgba(239, 68, 68, 0.1); }
-
     .transfer-box { background: #f9f9f9; border: 1px dashed #ccc; border-radius: 16px; padding: 20px; text-align: center; margin: 15px 0 25px 0; }
     .account-num { font-size: 2rem; font-weight: 800; color: #000; letter-spacing: 1px; margin: 5px 0 0 0; user-select: all; }
     .bank-name { font-size: 0.9rem; color: var(--text-gray); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
@@ -100,7 +98,6 @@
       <div class="net-card" onclick="fetchPlans('airtel')"><img src="airtel.png" alt="Airtel" onerror="this.style.background='#FF0000'"><span>Airtel</span></div>
     </div>
     
-    <!-- Action Grid -->
     <div class="action-grid">
       <div class="btn-glass" onclick="openGiveaway()">
           <span style="font-size:1.5rem">🎁</span> 
@@ -156,14 +153,13 @@
         showSheet(`<div class="loader"></div><p style="text-align:center; margin-top:10px">Scanning Networks...</p>`);
         try {
             const res = await fetch('/api/efficiency');
-            
-            if(!res.ok) throw new Error("Fetch failed");
             const data = await res.json();
             
+            if(data.error) throw new Error(data.error + (data.details ? ": " + data.details : ""));
+
             let html = `<h3 style="text-align:center; margin-bottom:15px">Network Efficiency</h3><div style="max-height:60vh; overflow-y:auto">`;
             
             let hasData = false;
-            // Iterate over networks (MTN, Glo, etc.)
             for (const [net, plans] of Object.entries(data)) {
                 if(net === 'ok' || !Array.isArray(plans)) continue;
                 
@@ -193,16 +189,20 @@
                 html += `</div>`;
             }
 
-            if (!hasData) {
-                html += `<p style="text-align:center; color:#999">No scan data available.</p>`;
-            }
-
+            if (!hasData) html += `<p style="text-align:center; color:#999">No scan data available.</p>`;
+            
             html += `</div><button class="btn-secondary" onclick="closeSheet()">Close</button>`;
             showSheet(html);
 
         } catch(e) {
             console.error(e);
-            showSheet(`<div style="text-align:center"><h3 style="color:red">Scan Failed</h3><p>Could not fetch efficiency data.</p><button class="btn-secondary" onclick="closeSheet()">Close</button></div>`);
+            showSheet(`
+                <div style="text-align:center">
+                    <h3 style="color:red; margin-bottom:10px">Scan Failed</h3>
+                    <p style="color:#666; font-size:0.85rem">${e.message || "Could not fetch efficiency data."}</p>
+                    <button class="btn-secondary" onclick="closeSheet()">Close</button>
+                </div>
+            `);
         }
     }
 
