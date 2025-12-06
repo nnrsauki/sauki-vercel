@@ -41,21 +41,22 @@
     .loader { width: 24px; height: 24px; border: 3px solid #eee; border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s infinite linear; margin: 0 auto; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* --- FLUTTERWAVE IFRAME FIX --- */
-    /* This forces the payment screen to be a centered modal instead of full screen */
+    /* --- FLUTTERWAVE IFRAME COMPRESSED FIX --- */
     iframe[name="checkout"], iframe[src*="flutterwave"] {
         position: fixed !important;
         top: 50% !important;
         left: 50% !important;
-        transform: translate(-50%, -50%) !important;
-        width: 90% !important;
-        max-width: 450px !important;
-        height: 85vh !important;
-        max-height: 700px !important;
-        border-radius: 25px !important;
+        /* "Compress" content by scaling it down and centering */
+        transform: translate(-50%, -50%) scale(0.9) !important; 
+        width: 95% !important;
+        max-width: 420px !important;
+        height: 70vh !important; /* Shorter dedicated shape */
+        max-height: 620px !important;
+        border-radius: 26px !important;
         box-shadow: 0 40px 80px rgba(0, 0, 0, 0.35) !important;
-        border: none !important;
-        z-index: 2147483647 !important; /* Max z-index to ensure it is on top */
+        border: 2px solid rgba(255,255,255,0.5) !important;
+        background: #fff !important;
+        z-index: 2147483647 !important;
     }
   </style>
 </head>
@@ -231,4 +232,5 @@
   </script>
 </body>
 </html>
+
 
