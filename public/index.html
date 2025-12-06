@@ -4,14 +4,23 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Sauki Data</title>
-  <!-- We removed the Flutterwave script script because we are building a custom UI -->
   <style>
     :root { --bg-gradient: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%); --glass-surface: rgba(255, 255, 255, 0.55); --glass-border: rgba(255, 255, 255, 0.4); --primary: #007AFF; --text-dark: #1d1d1f; --text-gray: #86868b; --radius-l: 26px; --radius-m: 18px; }
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; background: var(--bg-gradient); color: var(--text-dark); height: 100vh; overflow: hidden; display: flex; flex-direction: column; padding-bottom: env(safe-area-inset-bottom); }
     .status-bar { height: 44px; padding: 0 20px; padding-top: max(5px, env(safe-area-inset-top)); display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; font-weight: 600; color: var(--text-gray); z-index: 10; }
     .status-pill { background: rgba(255,255,255,0.4); padding: 4px 12px; border-radius: 20px; backdrop-filter: blur(10px); }
-    .app-screen { flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; padding: 10px 24px; max-width: 500px; margin: 0 auto; width: 100%; }
+    .app-screen { flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; padding: 10px 24px; max-width: 500px; margin: 0 auto; width: 100%; position: relative; }
+    
+    /* Announcement Banner */
+    #announcement-banner {
+        display: none; /* Hidden by default */
+        background: #FFF4CE; color: #664d03; border: 1px solid #ffe69c;
+        padding: 10px; border-radius: 12px; font-size: 0.85rem; text-align: center;
+        margin-bottom: 10px; animation: slideDown 0.5s ease;
+    }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
     .header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
     .header img { width: 44px; height: 44px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
     .brand-name { font-weight: 800; font-size: 1.2rem; letter-spacing: -0.5px; }
@@ -41,45 +50,11 @@
     .loader { width: 24px; height: 24px; border: 3px solid #eee; border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s infinite linear; margin: 0 auto; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Custom Styles for Native Transfer UI */
-    .transfer-box {
-      background: #f9f9f9;
-      border: 1px dashed #ccc;
-      border-radius: 16px;
-      padding: 20px;
-      text-align: center;
-      margin: 15px 0 25px 0;
-    }
-    .account-num {
-      font-size: 2rem;
-      font-weight: 800;
-      color: #000;
-      letter-spacing: 1px;
-      margin: 5px 0 0 0; /* Reduced bottom margin */
-      user-select: all;
-    }
-    .bank-name {
-      font-size: 0.9rem;
-      color: var(--text-gray);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      font-weight: 600;
-    }
-    .beneficiary-name {
-      font-size: 0.85rem;
-      color: #000;
-      font-weight: 600;
-      margin: 5px 0 10px 0;
-      background: #eee;
-      display: inline-block;
-      padding: 4px 10px;
-      border-radius: 8px;
-    }
-    .copy-toast {
-      position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-      background: rgba(0,0,0,0.8); color: #fff; padding: 8px 16px;
-      border-radius: 20px; font-size: 0.8rem; pointer-events: none; opacity: 0; transition: opacity 0.3s;
-    }
+    .transfer-box { background: #f9f9f9; border: 1px dashed #ccc; border-radius: 16px; padding: 20px; text-align: center; margin: 15px 0 25px 0; }
+    .account-num { font-size: 2rem; font-weight: 800; color: #000; letter-spacing: 1px; margin: 5px 0 0 0; user-select: all; }
+    .bank-name { font-size: 0.9rem; color: var(--text-gray); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+    .beneficiary-name { font-size: 0.85rem; color: #000; font-weight: 600; margin: 5px 0 10px 0; background: #eee; display: inline-block; padding: 4px 10px; border-radius: 8px; }
+    .copy-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: #fff; padding: 8px 16px; border-radius: 20px; font-size: 0.8rem; pointer-events: none; opacity: 0; transition: opacity 0.3s; }
     .copy-toast.show { opacity: 1; }
   </style>
 </head>
@@ -92,6 +67,8 @@
     </div>
   </div>
   <div class="app-screen">
+    <div id="announcement-banner"></div>
+    
     <div class="header">
       <img src="logo.png" alt="Logo" onerror="this.src='https://via.placeholder.com/44'">
       <div>
@@ -127,16 +104,25 @@
     let currentPlan = {};
     let activeTransactionRef = "";
 
-    // 1. SMART STARTUP
-    window.addEventListener('load', () => {
-        // Since we are using API, we check for pending transactions in LocalStorage
+    window.addEventListener('load', async () => {
+        // 1. Check for Pending Txs
         const p = localStorage.getItem('sauki_pend');
         if(p) { 
             const d = JSON.parse(p); 
-            // Resume if fresh (< 30 mins)
             if(Date.now() - d.t < 1800000) openRecover(d); 
             else localStorage.removeItem('sauki_pend'); 
         }
+
+        // 2. Fetch Broadcast Message
+        try {
+            const res = await fetch('/api/status');
+            const data = await res.json();
+            if(data.message && data.message.trim() !== "") {
+                const b = document.getElementById('announcement-banner');
+                b.innerText = data.message;
+                b.style.display = 'block';
+            }
+        } catch(e) {}
     });
 
     function openRecover(d) {
@@ -174,15 +160,12 @@
         `);
     }
 
-    // --- NEW NATIVE UI PAYMENT LOGIC ---
-
     async function initiateTransfer() {
         const ph = document.getElementById('u-ph').value;
         const nm = document.getElementById('u-nm').value;
         const pt = document.getElementById('u-pt').checked;
         if(ph.length < 10 || !nm) return alert("Invalid Details");
         
-        // Save state immediately
         const ref = `Sauki-${ph}-${Date.now()}`;
         activeTransactionRef = ref;
         localStorage.setItem('sauki_pend', JSON.stringify({ ref, ph, id: currentPlan.id, net: currentPlan.net, pt, t: Date.now() }));
@@ -190,7 +173,6 @@
         showSheet(`<div class="loader"></div><p style="text-align:center; margin-top:10px">Generating Account...</p>`);
 
         try {
-            // CALL YOUR BACKEND
             const res = await fetch('/api/initiate-transfer', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -207,49 +189,33 @@
 
             if (!res.ok) throw new Error("API Error");
             const data = await res.json();
-
-            if(data.success || data.account_number) {
-                renderTransferUI(data, ref);
-            } else {
-                throw new Error(data.message || "Failed to generate account");
-            }
+            if(data.success || data.account_number) renderTransferUI(data, ref);
+            else throw new Error(data.message || "Failed");
         } catch(e) {
-            console.error(e);
-            showSheet(`
-                <div style="text-align:center; padding: 10px;">
-                    <h3 style="color:#FF3B30">System Busy</h3>
-                    <p style="color:#666; font-size:0.9rem; margin:15px 0;">
-                       Could not generate account. Please try again later.
-                    </p>
-                    <button class="btn-secondary" onclick="buy('${currentPlan.id}','${currentPlan.name}',${currentPlan.price},'${currentPlan.net}')">Back</button>
-                </div>
-            `);
+            showSheet(`<div style="text-align:center"><h3 style="color:#FF3B30">System Busy</h3><p style="color:#666; margin:15px 0;">Could not generate account.</p><button class="btn-secondary" onclick="buy('${currentPlan.id}','${currentPlan.name}',${currentPlan.price},'${currentPlan.net}')">Back</button></div>`);
         }
     }
 
     function renderTransferUI(data, ref) {
-        // Ensure we handle different API response structures
         const accNum = data.account_number || data.account || "0000000000";
         const bankName = data.bank_name || data.bank || "Unknown Bank";
         const amount = data.amount || currentPlan.price;
+        // Dynamic name (default to Sauki Data if API is silent)
+        const accName = data.account_name || "Sauki Data";
 
         const html = `
             <div style="text-align:center">
                 <p style="font-size:0.9rem; color:#888;">Transfer exactly</p>
                 <h2 style="margin-bottom:10px">₦${amount}</h2>
-                
                 <div class="transfer-box" onclick="copyToClipboard('${accNum}')">
                     <div class="bank-name">${bankName}</div>
                     <div class="account-num">${accNum}</div>
-                    <!-- STATIC BENEFICIARY NAME -->
-                    <div class="beneficiary-name">Abdullahi Adam Usman FLW</div>
+                    <div class="beneficiary-name">${accName}</div>
                     <div style="font-size:0.8rem; color:var(--primary); margin-top:5px">Tap to Copy</div>
                 </div>
-
                 <div style="background:#fff3cd; color:#856404; padding:10px; border-radius:10px; font-size:0.8rem; margin-bottom:20px;">
-                    ⚠️ Use this account for this transaction only. Do not save it.
+                    ⚠️ Use this account for this transaction only.
                 </div>
-
                 <button class="btn-primary" onclick="verify('${ref}', false)">I have paid</button>
                 <button class="btn-secondary" onclick="closeSheet()">Cancel</button>
             </div>
@@ -257,35 +223,18 @@
         showSheet(html);
     }
 
-    function copyToClipboard(text) {
-        navigator.clipboard.writeText(text).then(() => {
-            const t = document.getElementById('toast');
-            t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 2000);
-        });
-    }
+    function copyToClipboard(text) { navigator.clipboard.writeText(text).then(() => { const t = document.getElementById('toast'); t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000); }); }
 
     async function verify(txId, isRec = false) {
         showSheet(`<div class="loader"></div><p style="text-align:center; margin-top:10px">Verifying Payment...</p>`);
-        
         let d = isRec ? JSON.parse(localStorage.getItem('sauki_pend')) : { ph: document.getElementById('u-ph')?.value || "Unknown", id: currentPlan.id, net: currentPlan.net, pt: false };
-        // Fallback to localstorage if variables are lost
-        if((!d || d.ph === "Unknown") && localStorage.getItem('sauki_pend')) {
-             d = JSON.parse(localStorage.getItem('sauki_pend'));
-        }
+        if((!d || d.ph === "Unknown") && localStorage.getItem('sauki_pend')) d = JSON.parse(localStorage.getItem('sauki_pend'));
 
         try {
             const res = await fetch('/api/purchase', {
                 method: 'POST',
                 headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({ 
-                    transaction_id: txId, // For native flow, this might be null, usually we verify by tx_ref
-                    tx_ref: txId, // In our custom flow, txId IS the ref
-                    mobile_number: d?.ph, 
-                    plan_id: d?.id, 
-                    network: d?.net, 
-                    ported: d?.pt 
-                })
+                body: JSON.stringify({ transaction_id: txId, tx_ref: txId, mobile_number: d?.ph, plan_id: d?.id, network: d?.net, ported: d?.pt })
             });
             const resp = await res.json();
             
@@ -295,19 +244,9 @@
             } else {
                 let msg = resp.error || "Transaction not found yet.";
                 const supportMsg = `Transaction Check:%0ARef: ${txId}%0APhone: ${d.ph}`;
-                showSheet(`
-                    <div style="text-align:center">
-                        <div style="font-size:50px; margin-bottom:10px">⏳</div>
-                        <h3 style="margin-bottom:10px">Payment not confirmed yet</h3>
-                        <p style="color:#666; margin-bottom:20px; font-size:0.9rem">Please wait a moment and try again.</p>
-                        <button class="btn-primary" onclick="verify('${txId}', true)">Check Again</button>
-                        <button class="btn-secondary" onclick="window.location='https://wa.me/${ADMIN_CONTACT}?text=${supportMsg}'">Contact Support</button>
-                    </div>
-                `);
+                showSheet(`<div style="text-align:center"><div style="font-size:50px; margin-bottom:10px">⏳</div><h3 style="margin-bottom:10px">Payment not confirmed</h3><p style="color:#666; margin-bottom:20px; font-size:0.9rem">Please wait a moment.</p><button class="btn-primary" onclick="verify('${txId}', true)">Check Again</button><button class="btn-secondary" onclick="window.location='https://wa.me/${ADMIN_CONTACT}?text=${supportMsg}'">Contact Support</button></div>`);
             }
-        } catch(e) { 
-            showSheet(`<p style="text-align:center">Connection Error</p><button class="btn-primary" onclick="verify('${txId}', true)">Retry</button>`); 
-        }
+        } catch(e) { showSheet(`<p style="text-align:center">Connection Error</p><button class="btn-primary" onclick="verify('${txId}', true)">Retry</button>`); }
     }
 
     function showSheet(html) { document.getElementById('sheet-content').innerHTML = html; document.getElementById('modal-overlay').classList.add('active'); }
@@ -318,5 +257,3 @@
   </script>
 </body>
 </html>
-
-
