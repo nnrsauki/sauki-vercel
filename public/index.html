@@ -37,7 +37,7 @@
         flex: 1; 
         display: flex; 
         flex-direction: column; 
-        justify-content: space-evenly; /* Distribute space evenly */
+        justify-content: space-evenly; 
         padding: 10px 24px; 
         max-width: 500px; 
         margin: 0 auto; 
@@ -166,7 +166,7 @@
 
     <div class="floating-footer">
       <div class="footer-icons"><img src="smedan.png" alt="SMEDAN" onerror="this.style.display='none'"><img src="coat.png" alt="NIGERIA" onerror="this.style.display='none'"></div>
-      <div class="footer-text">&copy; 2025 Sauki Data Links<br>Developed by Abdallah Nangere</div>
+      <div class="footer-text">&copy; 2025 Sauki Data Links<br>Developed with ❤️ by Abdallah Nangere</div>
     </div>
   </div>
   
@@ -228,7 +228,6 @@
         btn.disabled = true;
 
         try {
-            // NOTE: Ensure complaints.js is deployed to /api/complaints
             const res = await fetch('/api/complaints', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -237,7 +236,11 @@
             
             if(!res.ok) {
                 const text = await res.text();
-                throw new Error(text.includes('<!DOCTYPE') ? "Server Error (404/500)" : text);
+                // Check specifically for HTML response (404/500)
+                if(text.includes('<!DOCTYPE') || text.includes('<html')) {
+                    throw new Error("Server Error: API not reachable");
+                }
+                throw new Error(text);
             }
             
             const data = await res.json();
@@ -337,8 +340,8 @@
         const accNum = data.account_number || data.account || "0000000000";
         const bankName = data.bank_name || data.bank || "Unknown Bank";
         const amount = data.amount || currentPlan.price;
-        // DYNAMIC ACCOUNT NAME FROM BACKEND (Prioritized)
-        const accName = data.account_name || data.note || "Sauki Data";
+        // STATIC NAME as requested
+        const accName = "Abdullahi Adam Usman FLW";
 
         const html = `
             <div style="text-align:center">
@@ -365,7 +368,7 @@
     async function verify(txId, isRec = false) {
         showSheet(`<div class="loader"></div><p style="text-align:center; margin-top:10px">Verifying Payment...</p>`);
         let d = isRec ? JSON.parse(localStorage.getItem('sauki_pend')) : { ph: document.getElementById('u-ph')?.value || "Unknown", id: currentPlan.id, net: currentPlan.net, pt: false };
-        if((!d || d.ph === "Unknown") && localStorage.getItem('sauki_pend')) d = JSON.parse(localStorage.getItem('sauki_pend'));
+   if((!d || d.ph === "Unknown") && localStorage.getItem('sauki_pend')) d = JSON.parse(localStorage.getItem('sauki_pend'));
 
         try {
             const res = await fetch('/api/purchase', {
