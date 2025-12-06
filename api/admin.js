@@ -24,7 +24,7 @@ export default async function handler(req, res) {
     await client.connect();
 
     try {
-        // --- FETCH TRANSACTIONS ---
+        // --- GET TRANSACTIONS ---
         if (action === 'transactions') {
             const result = await client.query('SELECT * FROM transactions ORDER BY created_at DESC LIMIT 50');
             await client.end();
@@ -34,52 +34,38 @@ export default async function handler(req, res) {
         // --- RETRY FAILED TRANSACTION ---
         if (req.method === 'POST' && req.body.action === 'retry') {
             const { id } = req.body;
-            
-            // 1. Get Transaction Details
             const txRes = await client.query('SELECT * FROM transactions WHERE id = $1', [id]);
             if(txRes.rows.length === 0) throw new Error("Transaction not found");
             const tx = txRes.rows[0];
-
-            // 2. Get Plan Details (to get the API ID)
-            const planRes = await client.query('SELECT * FROM plans WHERE id = $1', [tx.plan_id]);
-            if(planRes.rows.length === 0) throw new Error("Plan not found");
-            const plan = planRes.rows[0];
-
-            // 3. Prepare Amigo Call
-            const NET_MAP = { 'mtn': 1, 'glo': 2, 'airtel': 3, '9mobile': 4 };
-            const networkInt = NET_MAP[tx.network.toLowerCase()] || 1;
-
-            const options = {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-API-Key': AMIGO_API_KEY },
-                body: JSON.stringify({ 
-                    network: networkInt, 
-                    mobile_number: tx.phone_number, 
-                    plan: plan.plan_id_api, 
-                    Ported_number: false // Default to false for retries
-                })
-            };
-
-            if (PROXY_URL) options.agent = new HttpsProxyAgent(PROXY_URL);
-
-            // 4. Call API
-            const apiRes = await fetch('https://amigo.ng/api/data/', options);
-            const apiData = await apiRes.json();
             
-            // 5. Update Status if Successful
-            const isSuccess = apiData.success === true || apiData.Status === 'successful';
-            
-            if (isSuccess) {
-                await client.query("UPDATE transactions SET status='success', api_response=$1 WHERE id=$2", [JSON.stringify(apiData), id]);
-                await client.end();
-                return res.status(200).json({ success: true, message: "Retry Successful! Data Sent." });
-            } else {
-                await client.query("UPDATE transactions SET api_response=$1 WHERE id=$2", [JSON.stringify(apiData), id]);
-                await client.end();
-                return res.status(400).json({ success: false, error: apiData.message || apiData.error_message });
-            }
+            // Re-use manual logic internally
+            await processOrder(client, tx.phone_number, tx.plan_id, tx.network, id); // Pass ID to update existing
+            await client.end();
+            return res.status(200).json({ success: true, message: "Retry Processed" });
         }
-        
+
+        // --- MANUAL ORDER (NEW) ---
+        if (req.method === 'POST' && req.body.action === 'manual') {
+            const { phone, plan_id, network } = req.body;
+            // Create a fake reference for manual orders
+            const ref = 'Manual-' + Date.now();
+            
+            // Save initial record
+            const insert = await client.query(
+                `INSERT INTO transactions (phone_number, network, plan_id, status, reference, created_at) 
+                 VALUES ($1, $2, $3, 'pending', $4, NOW()) RETURNING id`,
+                [phone, network, plan_id, ref]
+            );
+            const newId = insert.rows[0].id;
+
+            // Process
+            const result = await processOrder(client, phone, plan_id, network, newId);
+            await client.end();
+            
+            if(result.success) return res.status(200).json({ success: true });
+            else return res.status(400).json({ success: false, error: result.error });
+        }
+
         await client.end();
         return res.status(400).json({ error: 'Invalid Action' });
 
@@ -87,4 +73,39 @@ export default async function handler(req, res) {
         if(client) await client.end();
         res.status(500).json({ error: e.message });
     }
+}
+
+// Helper Function to send to Amigo
+async function processOrder(client, phone, planId, network, dbId) {
+    // Get Plan
+    const planRes = await client.query('SELECT * FROM plans WHERE id = $1', [planId]);
+    if(planRes.rows.length === 0) throw new Error("Plan not found");
+    const plan = planRes.rows[0];
+
+    const NET_MAP = { 'mtn': 1, 'glo': 2, 'airtel': 3, '9mobile': 4 };
+    const networkInt = NET_MAP[network.toLowerCase()] || 1;
+
+    const options = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-API-Key': AMIGO_API_KEY },
+        body: JSON.stringify({ 
+            network: networkInt, 
+            mobile_number: phone, 
+            plan: plan.plan_id_api, 
+            Ported_number: false 
+        })
+    };
+    if (PROXY_URL) options.agent = new HttpsProxyAgent(PROXY_URL);
+
+    const apiRes = await fetch('https://amigo.ng/api/data/', options);
+    const apiData = await apiRes.json();
+    
+    const isSuccess = apiData.success === true || apiData.Status === 'successful';
+    
+    // Update DB
+    await client.query("UPDATE transactions SET status=$1, api_response=$2 WHERE id=$3", 
+        [isSuccess ? 'success' : 'failed', JSON.stringify(apiData), dbId]
+    );
+
+    return { success: isSuccess, error: apiData.message || apiData.error_message };
 }
