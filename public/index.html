@@ -41,30 +41,30 @@
     .loader { width: 24px; height: 24px; border: 3px solid #eee; border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s infinite linear; margin: 0 auto; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* --- FLUTTERWAVE IFRAME ULTIMATE FIX --- */
-    iframe[name="checkout"], iframe[src*="flutterwave"] {
+    /* --- FLUTTERWAVE IFRAME FIX STARTS HERE --- */
+    /* This targets the iframe Flutterwave creates and forces it to fit the exact viewport height */
+    iframe[name="checkout"] {
         display: block !important;
         position: fixed !important;
-        /* Center using viewport units to prevent off-screen issues */
-        top: 50vh !important;
-        left: 50vw !important;
-        
-        /* Set actual render size larger to fit content */
-        width: 380px !important;
-        height: 720px !important;
-        
-        /* Use transform to center AND scale down simultaneously */
-        /* Scale 0.8 makes the 720px height look like ~576px, fitting all screens */
-        transform: translate(-50%, -50%) scale(0.8) !important;
-        transform-origin: center center !important;
-        
-        border-radius: 24px !important;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
-        border: 2px solid rgba(255,255,255,0.8) !important;
-        background: #fff !important;
-        z-index: 2147483647 !important;
-        max-width: 95vw !important; /* Safety cap */
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        max-height: 100dvh !important; /* Forces fit on mobile browsers with dynamic address bars */
+        z-index: 999999 !important;
+        border: none !important;
     }
+    
+    /* On very small screens (iPhone SE etc), scale it down slightly to ensure the bottom button is visible */
+    @media screen and (max-height: 700px) {
+        iframe[name="checkout"] {
+            height: 105vh !important; /* Increase height slightly to compensate for scale */
+            transform: scale(0.95); /* Shrink content by 5% */
+            transform-origin: top center;
+        }
+    }
+    /* --- FLUTTERWAVE IFRAME FIX ENDS HERE --- */
+
   </style>
 </head>
 <body>
@@ -186,7 +186,7 @@
             redirect_url: window.location.href, // This handles the auto-return
             customer: { email: "saukidatalinks@gmail.com", phone_number: ph, name: nm },
             meta: { plan_id: currentPlan.id, ported: pt },
-            customizations: { title: "Abdullahi Adam Usman FLW", logo: "https://saukidata.vercel.app/logo.png" },
+            customizations: { title: "Sauki Data Payment", logo: "https://saukidata.vercel.app/logo.png" },
             callback: (d) => {
                 // If payment modal closes with success, AUTO VERIFY immediately
                 if(d.status === "successful" || d.status === "completed") {
@@ -233,11 +233,9 @@
 
     function showSheet(html) { document.getElementById('sheet-content').innerHTML = html; document.getElementById('modal-overlay').classList.add('active'); }
     function closeSheet() { document.getElementById('modal-overlay').classList.remove('active'); }
-    function openGiveaway() { showSheet(`<h3 style="text-align:center; margin-bottom:15px">🎁 Giveaway Entry</h3><select class="input-field" id="g-net"><option value="MTN">MTN</option><option value="GLO">Glo</option><option value=\"AIRTEL\">Airtel</option></select><input class="input-field" id="g-p" placeholder="Phone Number" type="tel"><input class="input-field" id="g-k" placeholder="Giveaway Code"><button class="btn-primary" onclick="submitGiveaway()">Submit Entry</button><button class="btn-secondary" onclick="closeSheet()">Back</button>`); }
+    function openGiveaway() { showSheet(`<h3 style="text-align:center; margin-bottom:15px">🎁 Giveaway Entry</h3><select class="input-field" id="g-net"><option value="MTN">MTN</option><option value="GLO">Glo</option><option value="AIRTEL">Airtel</option></select><input class="input-field" id="g-p" placeholder="Phone Number" type="tel"><input class="input-field" id="g-k" placeholder="Giveaway Code"><button class="btn-primary" onclick="submitGiveaway()">Submit Entry</button><button class="btn-secondary" onclick="closeSheet()">Back</button>`); }
     function submitGiveaway() { const net = document.getElementById('g-net').value; const ph = document.getElementById('g-p').value; const code = document.getElementById('g-k').value; if(!ph || !code) return alert("Please fill all fields"); const text = `Giveaway Entry:%0ANetwork: ${net}%0APhone: ${ph}%0ACode: ${code}`; window.location.href = `https://wa.me/${ADMIN_CONTACT}?text=${text}`; }
     function subscribe() { window.location = `https://wa.me/${ADMIN_CONTACT}?text=Subscribe`; }
   </script>
 </body>
 </html>
-
-
