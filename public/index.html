@@ -6,7 +6,6 @@
   <title>Sauki Data</title>
   <script src="https://checkout.flutterwave.com/v3.js"></script>
   <style>
-    /* Same CSS as before */
     :root { --bg-gradient: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%); --glass-surface: rgba(255, 255, 255, 0.55); --glass-border: rgba(255, 255, 255, 0.4); --primary: #007AFF; --text-dark: #1d1d1f; --text-gray: #86868b; --radius-l: 26px; --radius-m: 18px; }
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; background: var(--bg-gradient); color: var(--text-dark); height: 100vh; overflow: hidden; display: flex; flex-direction: column; padding-bottom: env(safe-area-inset-bottom); }
@@ -44,7 +43,6 @@
   </style>
 </head>
 <body>
-  <!-- Layout -->
   <div class="status-bar">
     <div class="status-pill"><span style="font-size:12px">saukidatalinks@gmail.com</span></div>
     <div style="display:flex; gap:15px;">
@@ -87,9 +85,26 @@
     const ADMIN_CONTACT = "2348164135836";
     let currentPlan = {};
 
+    // 1. SMART STARTUP: Check for Payment Return FIRST
     window.addEventListener('load', () => {
+        const url = new URLSearchParams(window.location.search);
+        // If returning from Flutterwave with success
+        if (url.has('status') && (url.get('status') === 'successful' || url.get('status') === 'completed')) {
+            const txId = url.get('transaction_id') || url.get('tx_ref');
+            window.history.replaceState({}, '', '/'); // Clean URL
+            // AUTO VERIFY IMMEDIATELY
+            verify(txId);
+            return; // Stop here, don't show resume popup
+        }
+
+        // Only if NO payment return, check for interrupted
         const p = localStorage.getItem('sauki_pend');
-        if(p) { const d = JSON.parse(p); if(Date.now() - d.t < 900000) openRecover(d); else localStorage.removeItem('sauki_pend'); }
+        if(p) { 
+            const d = JSON.parse(p); 
+            // Only resume if fresh (< 15 mins)
+            if(Date.now() - d.t < 900000) openRecover(d); 
+            else localStorage.removeItem('sauki_pend'); 
+        }
     });
 
     function openRecover(d) {
@@ -143,31 +158,39 @@
             amount: currentPlan.price,
             currency: "NGN",
             payment_options: "card,banktransfer,ussd",
-            redirect_url: window.location.href,
+            redirect_url: window.location.href, // This handles the auto-return
             customer: { email: "saukidatalinks@gmail.com", phone_number: ph, name: nm },
-            // Pass Plan ID and Port Status in Meta so Webhook can fulfill if UI closes
             meta: { plan_id: currentPlan.id, ported: pt },
             customizations: { title: "Abdullahi Adam Usman FLW", logo: "https://saukidata.vercel.app/logo.png" },
-            callback: (d) => verify(d.transaction_id || ref)
+            callback: (d) => {
+                // If payment modal closes with success, AUTO VERIFY immediately
+                if(d.status === "successful" || d.status === "completed") {
+                    verify(d.transaction_id || ref, false, ref);
+                }
+            }
         });
     }
 
-    const url = new URLSearchParams(window.location.search);
-    if(url.has('status') && (url.get('status') === 'successful' || url.get('status') === 'completed')) {
-        window.history.replaceState({},'', '/');
-        verify(url.get('transaction_id') || url.get('tx_ref'));
-    }
-
-    async function verify(txId, isRec = false) {
-        showSheet(`<div class="loader"></div><p style="text-align:center; margin-top:10px">Verifying...</p>`);
-        let d = isRec ? JSON.parse(localStorage.getItem('sauki_pend')) : { ph: document.getElementById('u-ph').value, id: currentPlan.id, net: currentPlan.net, pt: document.getElementById('u-pt').checked };
+    async function verify(txId, isRec = false, fallbackRef = null) {
+        showSheet(`<div class="loader"></div><p style="text-align:center; margin-top:10px">Verifying Payment...</p>`);
+        
+        let d = isRec ? JSON.parse(localStorage.getItem('sauki_pend')) : { ph: document.getElementById('u-ph')?.value, id: currentPlan.id, net: currentPlan.net, pt: document.getElementById('u-pt')?.checked };
         if(!d || !d.ph) d = JSON.parse(localStorage.getItem('sauki_pend'));
+
+        const refToSend = fallbackRef || (d ? d.ref : txId);
 
         try {
             const res = await fetch('/api/purchase', {
                 method: 'POST',
                 headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({ transaction_id: txId, mobile_number: d.ph, plan_id: d.id, network: d.net, ported: d.pt })
+                body: JSON.stringify({ 
+                    transaction_id: txId, 
+                    tx_ref: refToSend,
+                    mobile_number: d?.ph || "Unknown", 
+                    plan_id: d?.id || "Unknown", 
+                    network: d?.net || "unknown", 
+                    ported: d?.pt 
+                })
             });
             const resp = await res.json();
             localStorage.removeItem('sauki_pend');
@@ -177,7 +200,7 @@
             } else {
                 let msg = resp.error;
                 if(msg.includes('Provider') || msg.includes('API')) msg = "Network is down now, but you will be credited immediately it is back.";
-                const supportMsg = `Transaction Failed details:%0A%0ARef: ${txId}%0APhone: ${d.ph}%0APlan: ${d.id}%0AReason: ${resp.error}`;
+                const supportMsg = `Transaction Failed details:%0A%0ARef: ${refToSend}%0APhone: ${d.ph}%0APlan: ${d.id}%0AReason: ${resp.error}`;
                 showSheet(`<div style="text-align:center"><div style="font-size:50px; margin-bottom:10px">⚠️</div><h3 style="margin-bottom:10px; color:#FF3B30">Processing...</h3><p style="color:#666; margin-bottom:20px">${msg}</p><button class="btn-secondary" style="width:100%" onclick="window.location='https://wa.me/${ADMIN_CONTACT}?text=${supportMsg}'">Contact Admin</button><button class="btn-primary" style="margin-top:10px; background:#8E8E93" onclick="closeSheet()">Close</button></div>`);
             }
         } catch(e) { showSheet(`<p style="text-align:center">Network Error</p><button class="btn-secondary" onclick="closeSheet()">Back</button>`); }
