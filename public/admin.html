@@ -24,6 +24,7 @@
     button { padding: 12px 20px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
     .btn-primary { background: var(--accent); color: #fff; width: 100%; }
     .btn-danger { background: #f64e60; color: #fff; }
+    .btn-retry { background: #FFA800; color: #000; padding: 6px 12px; font-size: 0.8rem; }
     
     table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.9rem; }
     th { text-align: left; padding: 15px; background: rgba(0,0,0,0.3); color: #888; }
@@ -42,7 +43,7 @@
   <!-- Login Overlay -->
   <div id="login-modal">
     <div class="login-box">
-      <img src="logo.png" style="width:60px; margin-bottom:20px; border-radius:10px;">
+      <img src="logo.png" style="width:60px; margin-bottom:20px; border-radius:10px;" onerror="this.style.display='none'">
       <h2>Admin Login</h2>
       <input type="text" id="adm-u" placeholder="Admin Username">
       <input type="password" id="adm-p" placeholder="Password">
@@ -56,7 +57,6 @@
       <button class="btn-primary" style="background:transparent; text-align:left" onclick="showTab('plans')">Manage Plans</button>
       <button class="btn-primary" style="background:transparent; text-align:left" onclick="showTab('tx')">Transactions</button>
       <div style="margin-top:40px; border-top:1px solid #444; padding-top:20px;">
-        <p style="font-size:0.8rem; color:#666">Version 2.0.0</p>
         <button class="btn-danger" onclick="location.reload()">Logout</button>
       </div>
     </aside>
@@ -71,7 +71,7 @@
         <h4 style="margin-top:0">Plan Details</h4>
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
           <input id="p-id" placeholder="ID (e.g. mtn-1gb)">
-          <select id="p-net"><option value="mtn">MTN</option><option value="glo">Glo</option><option value="airtel">Airtel</option><option value="9mobile">9mobile</option></select>
+          <select id="p-net"><option value="mtn">MTN</option><option value="glo">Glo</option><option value="airtel">Airtel</option></select>
           <input id="p-name" placeholder="Display Name (e.g. 1GB SME)">
           <input id="p-price" type="number" placeholder="Price (₦)">
           <input id="p-api" placeholder="Amigo/API Plan ID">
@@ -86,14 +86,13 @@
     </main>
 
     <main class="main" id="tab-tx" style="display:none">
-      <h2>Recent Transactions</h2>
-      <div class="stat-card">
-        <span style="display:block; font-size:0.9rem; color:#888;">Total Sales</span>
-        <span class="stat-val" id="total-sales">Loading...</span>
+      <div style="display:flex; justify-content:space-between;">
+        <h2>Recent Transactions</h2>
+        <button onclick="loadTx()" style="background:#444; color:#fff; padding:8px 15px; border-radius:6px; border:none">Refresh</button>
       </div>
-      <button onclick="loadTx()" style="background:#444; color:#fff; margin-bottom:10px; font-size:0.8rem">Refresh Data</button>
+      
       <table>
-        <thead><tr><th>Time</th><th>Ref</th><th>Phone</th><th>Plan</th><th>Status</th></tr></thead>
+        <thead><tr><th>Time</th><th>Ref</th><th>Phone</th><th>Plan</th><th>Status</th><th>Action</th></tr></thead>
         <tbody id="tx-table"></tbody>
       </table>
     </main>
@@ -107,7 +106,6 @@
       const p = document.getElementById('adm-p').value;
       const creds = 'Basic ' + btoa(u + ':' + p);
       
-      // Test Auth
       try {
         const res = await fetch('/api/admin?action=check', { headers: { 'Authorization': creds } });
         if(res.ok) {
@@ -185,12 +183,13 @@
       
       if(data.error) return alert(data.error);
 
-      // Simple Analytics
-      const total = data.length;
-      document.getElementById('total-sales').innerText = total + " Orders";
-
-      const rows = data.slice(0, 50).map(t => {
+      const rows = data.map(t => {
         const badge = t.status === 'success' ? 's-success' : 's-failed';
+        let actionBtn = '';
+        if(t.status !== 'success') {
+           actionBtn = `<button class="btn-retry" onclick="retryTx(${t.id})">Retry ↺</button>`;
+        }
+        
         return `
           <tr>
             <td style="font-size:0.8rem; color:#888">${new Date(t.created_at).toLocaleString()}</td>
@@ -198,13 +197,45 @@
             <td>${t.phone_number}</td>
             <td>${t.plan_id}</td>
             <td><span class="status-badge ${badge}">${t.status}</span></td>
+            <td>${actionBtn}</td>
           </tr>
         `;
       }).join('');
       document.getElementById('tx-table').innerHTML = rows;
     }
 
+    async function retryTx(id) {
+        if(!confirm("Are you sure you want to retry this transaction?")) return;
+        
+        const btn = event.target;
+        btn.innerText = "Processing...";
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/api/admin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
+                body: JSON.stringify({ action: 'retry', id: id })
+            });
+            const data = await res.json();
+            
+            if(data.success) {
+                alert("Success! Data sent.");
+                loadTx();
+            } else {
+                alert("Failed: " + data.error);
+                btn.innerText = "Retry ↺";
+                btn.disabled = false;
+            }
+        } catch(e) {
+            alert("Network Error");
+            btn.innerText = "Retry ↺";
+            btn.disabled = false;
+        }
+    }
+
   </script>
 </body>
 </html>
+
 
