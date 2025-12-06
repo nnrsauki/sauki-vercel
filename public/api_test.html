@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sauki API Diagnostics</title>
+    <style>
+        body { font-family: monospace; background: #0d1117; color: #c9d1d9; padding: 20px; max-width: 800px; margin: 0 auto; }
+        h1 { border-bottom: 1px solid #30363d; padding-bottom: 10px; }
+        .input-group { margin-bottom: 20px; background: #161b22; padding: 20px; border-radius: 6px; border: 1px solid #30363d; }
+        input { background: #0d1117; border: 1px solid #30363d; color: #fff; padding: 10px; border-radius: 4px; width: 200px; margin-right: 10px; }
+        button { background: #238636; color: #fff; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #2ea043; }
+        
+        .test-row { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #21262d; }
+        .test-name { font-weight: bold; font-size: 1.1em; }
+        .test-desc { color: #8b949e; font-size: 0.9em; margin-top: 4px; }
+        .status { padding: 4px 10px; border-radius: 12px; font-size: 0.8em; font-weight: bold; text-transform: uppercase; }
+        .pending { background: #30363d; color: #8b949e; }
+        .success { background: rgba(46, 160, 67, 0.2); color: #3fb950; }
+        .failed { background: rgba(218, 54, 51, 0.2); color: #f85149; }
+        .logs { background: #000; padding: 10px; margin-top: 5px; border-radius: 4px; font-size: 0.8em; color: #f85149; display:none; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+
+    <h1>🚀 API Diagnostics</h1>
+    
+    <div class="input-group">
+        <h3 style="margin-top:0">Admin Credentials Required</h3>
+        <p style="font-size:0.9em; color:#8b949e; margin-bottom:10px;">We need these to test the protected endpoints (Flutterwave & Amigo).</p>
+        <input type="text" id="u" placeholder="Admin Username">
+        <input type="password" id="p" placeholder="Admin Password">
+        <button onclick="runTests()">Start Diagnostics</button>
+    </div>
+
+    <div id="results">
+        <!-- Tests will appear here -->
+    </div>
+
+    <script>
+        const tests = [
+            { id: 'public_plans', name: 'Public Plans API', url: '/api/plans', method: 'GET', auth: false, desc: 'Checks if customers can load data plans.' },
+            { id: 'public_status', name: 'System Status API', url: '/api/status', method: 'GET', auth: false, desc: 'Checks the broadcast message system.' },
+            { id: 'admin_auth', name: 'Admin Authentication', url: '/api/admin?action=check', method: 'GET', auth: true, desc: 'Verifies your username and password.' },
+            { id: 'db_tx', name: 'Database Connection', url: '/api/admin?action=transactions', method: 'GET', auth: true, desc: 'Tries to fetch transaction history from PostgreSQL.' },
+            { id: 'flw_conn', name: 'Flutterwave Connection', url: '/api/flw_admin?action=balance', method: 'GET', auth: true, desc: 'Connects to Flutterwave to fetch balance.' },
+            { id: 'amigo_conn', name: 'Amigo Connection', url: '/api/amigo_admin', method: 'GET', auth: true, desc: 'Connects to Amigo to fetch wallet balance.' }
+        ];
+
+        async function runTests() {
+            const u = document.getElementById('u').value;
+            const p = document.getElementById('p').value;
+            const creds = 'Basic ' + btoa(u + ':' + p);
+            
+            const container = document.getElementById('results');
+            container.innerHTML = '';
+
+            for (const t of tests) {
+                // Render Row
+                const div = document.createElement('div');
+                div.innerHTML = `
+                    <div class="test-row">
+                        <div>
+                            <div class="test-name">${t.name}</div>
+                            <div class="test-desc">${t.desc}</div>
+                        </div>
+                        <span id="status-${t.id}" class="status pending">Running...</span>
+                    </div>
+                    <div id="log-${t.id}" class="logs"></div>
+                `;
+                container.appendChild(div);
+
+                // Run Test
+                try {
+                    const headers = t.auth ? { 'Authorization': creds } : {};
+                    const start = Date.now();
+                    const res = await fetch(t.url, { method: t.method, headers });
+                    const time = Date.now() - start;
+
+                    const statusSpan = document.getElementById(`status-${t.id}`);
+                    
+                    if (res.ok) {
+                        statusSpan.className = 'status success';
+                        statusSpan.innerText = `PASSED (${time}ms)`;
+                    } else {
+                        const data = await res.text();
+                        throw new Error(`${res.status} ${res.statusText}: ${data.substring(0, 100)}`);
+                    }
+                } catch (e) {
+                    document.getElementById(`status-${t.id}`).className = 'status failed';
+                    document.getElementById(`status-${t.id}`).innerText = 'FAILED';
+                    const log = document.getElementById(`log-${t.id}`);
+                    log.innerText = e.message;
+                    log.style.display = 'block';
+                }
+            }
+        }
+    </script>
+</body>
+</html>
+
