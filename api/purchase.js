@@ -23,7 +23,7 @@ export default async function handler(req, res) {
     try {
         await client.connect();
 
-        // 1. Get Plan Info from Database
+        // 1. Get Plan Info
         const planRes = await client.query('SELECT * FROM plans WHERE id = $1', [plan_id]);
         if (planRes.rows.length === 0) {
             await client.end();
@@ -31,20 +31,14 @@ export default async function handler(req, res) {
         }
         const plan = planRes.rows[0];
 
-        // 2. Check if Transaction already processed (Idempotency)
+        // 2. Idempotency Check (Prevent Double Charging)
         const check = await client.query('SELECT id, status FROM transactions WHERE reference = $1', [String(transaction_id)]);
         if (check.rows.length > 0) {
             await client.end();
-            // If already success, return success again
-            if (check.rows[0].status === 'success') {
-                return res.status(200).json({ success: true, message: 'Already Delivered' });
-            }
-            return res.status(400).json({ error: 'Duplicate Transaction' }); 
+            return res.status(200).json({ success: true, message: 'Transaction already processed' });
         }
 
-        // 3. Verify Payment with Flutterwave
-        // Note: We skip this step if you are running test mode and just want to simulate, 
-        // but for production, this is critical.
+        // 3. Verify Flutterwave Payment
         const flwRes = await fetch(`https://api.flutterwave.com/v3/transactions/${transaction_id}/verify`, { 
             headers: { 'Authorization': `Bearer ${FLW_SECRET_KEY}` } 
         });
@@ -55,36 +49,31 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Payment Verification Failed' });
         }
         
-        // Ensure paid amount is enough
         if (flwData.data.amount < plan.price) {
             await client.end();
             return res.status(400).json({ error: 'Insufficient Amount Paid' });
         }
 
-        // 4. Send Data via Amigo API
+        // 4. Send Data via Amigo (STRICT LEGACY FORMAT)
         const NET_MAP = { 'mtn': 1, 'glo': 2, 'airtel': 3, '9mobile': 4 };
         const networkInt = NET_MAP[plan.network.toLowerCase()] || 1;
 
-        const apiPayload = { 
-            network: networkInt, 
-            mobile_number, 
-            plan: plan.plan_id_api, 
-            Ported_number: !!ported 
-        };
-
+        // Exactly as your old file
         const options = {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Token ${AMIGO_API_KEY}` }, // Amigo often uses Token auth, check docs if Key or Token
-            body: JSON.stringify(apiPayload)
+            headers: { 
+                'Content-Type': 'application/json', 
+                'X-API-Key': AMIGO_API_KEY  // DIRECT HEADER, NO SWITCHING
+            },
+            body: JSON.stringify({ 
+                network: networkInt, 
+                mobile_number: mobile_number, 
+                plan: plan.plan_id_api, 
+                Ported_number: !!ported 
+            })
         };
 
-        // If Amigo requires specific header key 'X-API-Key', switch above line. 
-        // Assuming standard Bearer or Token based on common providers, but Amigo specifically usually:
-        // headers: {'Content-Type': 'application/json', 'Authorization': 'Token YOUR_KEY'} OR query param.
-        // Adjusting based on your previous file which used header X-API-Key:
-        options.headers['X-API-Key'] = AMIGO_API_KEY; 
-        delete options.headers['Authorization']; // Remove if using X-API-Key
-
+        // Attach Proxy if exists
         if (PROXY_URL) {
             options.agent = new HttpsProxyAgent(PROXY_URL);
         }
@@ -92,11 +81,9 @@ export default async function handler(req, res) {
         const amigoRes = await fetch('https://amigo.ng/api/data/', options);
         const amigoResult = await amigoRes.json();
 
-        // 5. Save Transaction Record
-        const status = amigoResult.success || (amigoResult.Status === 'successful') ? 'success' : 'failed'; // Adjust based on Amigo actual response key
-        
-        // Use the format: Sauki-Phone-Time as user requested, though we used it as Ref.
-        // We store the FLW Ref passed from frontend.
+        // 5. Save Record
+        const isSuccess = amigoResult.success === true || amigoResult.Status === 'successful';
+        const status = isSuccess ? 'success' : 'failed';
         
         await client.query(
             `INSERT INTO transactions (phone_number, network, plan_id, status, reference, api_response, created_at) 
@@ -106,15 +93,17 @@ export default async function handler(req, res) {
         
         await client.end();
 
-        if (status === 'success') {
+        if (isSuccess) {
             return res.status(200).json({ success: true, message: 'Data Sent!' });
         } else {
-            // This error message will trigger the "Network Down" UI on frontend
-            return res.status(400).json({ success: false, error: 'Provider Error: ' + (amigoResult.message || amigoResult.error_message) });
+            // Pass provider error to frontend
+            const errorMsg = amigoResult.message || amigoResult.error_message || "Provider Error";
+            return res.status(400).json({ success: false, error: 'Provider: ' + errorMsg });
         }
 
     } catch (e) {
         if(client) await client.end();
+        console.error("Purchase Error:", e);
         return res.status(500).json({ error: e.message });
     }
 }
