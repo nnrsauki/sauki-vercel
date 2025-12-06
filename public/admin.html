@@ -16,15 +16,13 @@
 
     h2, h3 { margin-top: 0; color: #fff; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; }
     
-    .stat-card { background: rgba(0,0,0,0.2); padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid var(--accent); }
-    .stat-val { font-size: 2rem; font-weight: bold; }
-    
     input, select { width: 100%; padding: 12px; margin: 8px 0; background: #151521; border: 1px solid #444; color: #fff; border-radius: 6px; }
     
     button { padding: 12px 20px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
     .btn-primary { background: var(--accent); color: #fff; width: 100%; }
     .btn-danger { background: #f64e60; color: #fff; }
     .btn-retry { background: #FFA800; color: #000; padding: 6px 12px; font-size: 0.8rem; }
+    .btn-success { background: #1dc9b7; color: #fff; }
     
     table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.9rem; }
     th { text-align: left; padding: 15px; background: rgba(0,0,0,0.3); color: #888; }
@@ -34,20 +32,31 @@
     .s-success { background: rgba(29, 201, 183, 0.2); color: #1dc9b7; }
     .s-failed { background: rgba(253, 57, 122, 0.2); color: #fd397a; }
 
-    #login-modal { position: fixed; inset: 0; background: var(--admin-bg); z-index: 999; display: flex; align-items: center; justify-content: center; }
+    #login-modal, #manual-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 999; display: none; align-items: center; justify-content: center; }
     .login-box { background: var(--admin-panel); padding: 40px; border-radius: 16px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
   </style>
 </head>
 <body>
 
   <!-- Login Overlay -->
-  <div id="login-modal">
+  <div id="login-modal" style="display:flex">
     <div class="login-box">
-      <img src="logo.png" style="width:60px; margin-bottom:20px; border-radius:10px;" onerror="this.style.display='none'">
       <h2>Admin Login</h2>
       <input type="text" id="adm-u" placeholder="Admin Username">
       <input type="password" id="adm-p" placeholder="Password">
       <button class="btn-primary" onclick="adminLogin()">Access Dashboard</button>
+    </div>
+  </div>
+
+  <!-- Manual Order Modal -->
+  <div id="manual-modal">
+    <div class="login-box">
+      <h3>Manual Order</h3>
+      <input id="m-phone" placeholder="Phone Number (080...)">
+      <select id="m-net" onchange="updatePlanList()"><option value="mtn">MTN</option><option value="glo">Glo</option><option value="airtel">Airtel</option></select>
+      <select id="m-plan"><option>Loading...</option></select>
+      <button class="btn-success" onclick="sendManual()" style="margin-top:10px">Send Data</button>
+      <button class="btn-danger" onclick="document.getElementById('manual-modal').style.display='none'" style="margin-top:10px">Close</button>
     </div>
   </div>
 
@@ -88,7 +97,10 @@
     <main class="main" id="tab-tx" style="display:none">
       <div style="display:flex; justify-content:space-between;">
         <h2>Recent Transactions</h2>
-        <button onclick="loadTx()" style="background:#444; color:#fff; padding:8px 15px; border-radius:6px; border:none">Refresh</button>
+        <div>
+           <button class="btn-success" onclick="openManual()">+ Manual Order</button>
+           <button onclick="loadTx()" style="background:#444; color:#fff; padding:8px 15px; border-radius:6px; border:none">Refresh</button>
+        </div>
       </div>
       
       <table>
@@ -100,6 +112,7 @@
 
   <script>
     let authHeader = '';
+    let allPlans = [];
 
     async function adminLogin() {
       const u = document.getElementById('adm-u').value;
@@ -134,8 +147,8 @@
     // --- PLANS ---
     async function loadPlans() {
       const res = await fetch('/api/plans');
-      const data = await res.json();
-      const rows = data.map(p => `
+      allPlans = await res.json();
+      const rows = allPlans.map(p => `
         <tr>
           <td style="text-transform:uppercase; font-weight:bold; color:var(--accent)">${p.network}</td>
           <td>${p.name}</td>
@@ -156,23 +169,13 @@
         price: document.getElementById('p-price').value,
         plan_id_api: document.getElementById('p-api').value
       };
-      
-      await fetch('/api/plans', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
-        body: JSON.stringify(body)
-      });
-      toggleEdit();
-      loadPlans();
+      await fetch('/api/plans', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': authHeader }, body: JSON.stringify(body) });
+      toggleEdit(); loadPlans();
     }
 
     async function deletePlan(id) {
       if(!confirm("Are you sure?")) return;
-      await fetch('/api/plans', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
-        body: JSON.stringify({ action: 'delete', id })
-      });
+      await fetch('/api/plans', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': authHeader }, body: JSON.stringify({ action: 'delete', id }) });
       loadPlans();
     }
 
@@ -180,16 +183,11 @@
     async function loadTx() {
       const res = await fetch('/api/admin?action=transactions', { headers: { 'Authorization': authHeader } });
       const data = await res.json();
-      
       if(data.error) return alert(data.error);
 
       const rows = data.map(t => {
         const badge = t.status === 'success' ? 's-success' : 's-failed';
-        let actionBtn = '';
-        if(t.status !== 'success') {
-           actionBtn = `<button class="btn-retry" onclick="retryTx(${t.id})">Retry ↺</button>`;
-        }
-        
+        let actionBtn = t.status !== 'success' ? `<button class="btn-retry" onclick="retryTx('${t.id}')">Retry ↺</button>` : '';
         return `
           <tr>
             <td style="font-size:0.8rem; color:#888">${new Date(t.created_at).toLocaleString()}</td>
@@ -205,37 +203,54 @@
     }
 
     async function retryTx(id) {
-        if(!confirm("Are you sure you want to retry this transaction?")) return;
+        if(!confirm("Retry this transaction?")) return;
+        try {
+            const res = await fetch('/api/admin', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': authHeader }, body: JSON.stringify({ action: 'retry', id: id }) });
+            const data = await res.json();
+            alert(data.success ? "Success!" : "Failed: " + data.error);
+            loadTx();
+        } catch(e) { alert("Error"); }
+    }
+
+    // --- MANUAL ORDERS ---
+    function openManual() {
+        document.getElementById('manual-modal').style.display = 'flex';
+        updatePlanList();
+    }
+
+    function updatePlanList() {
+        const net = document.getElementById('m-net').value;
+        const filtered = allPlans.filter(p => p.network === net);
+        document.getElementById('m-plan').innerHTML = filtered.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    }
+
+    async function sendManual() {
+        const phone = document.getElementById('m-phone').value;
+        const net = document.getElementById('m-net').value;
+        const pid = document.getElementById('m-plan').value;
         
-        const btn = event.target;
-        btn.innerText = "Processing...";
-        btn.disabled = true;
+        if(!phone || !pid) return alert("Fill all fields");
+        if(!confirm(`Send ${net.toUpperCase()} data to ${phone}?`)) return;
 
         try {
             const res = await fetch('/api/admin', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
-                body: JSON.stringify({ action: 'retry', id: id })
+                body: JSON.stringify({ action: 'manual', phone, network: net, plan_id: pid })
             });
-            const data = await res.json();
-            
-            if(data.success) {
-                alert("Success! Data sent.");
+            const d = await res.json();
+            if(d.success) {
+                alert("Sent Successfully!");
+                document.getElementById('manual-modal').style.display = 'none';
                 loadTx();
             } else {
-                alert("Failed: " + data.error);
-                btn.innerText = "Retry ↺";
-                btn.disabled = false;
+                alert("Failed: " + d.error);
             }
-        } catch(e) {
-            alert("Network Error");
-            btn.innerText = "Retry ↺";
-            btn.disabled = false;
-        }
+        } catch(e) { alert("Error"); }
     }
-
   </script>
 </body>
 </html>
 
 
+  
