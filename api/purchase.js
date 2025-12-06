@@ -12,93 +12,85 @@ const CONNECTION_STRING = process.env.POSTGRES_URL;
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({error: 'Method Not Allowed'});
 
-    // "transaction_id" here might be a Number (ID) OR a String (Ref) depending on where it comes from
-    const { transaction_id, mobile_number, plan_id, ported } = req.body;
+    const { transaction_id, tx_ref, mobile_number, plan_id, ported } = req.body;
+    const finalRef = tx_ref || String(transaction_id);
 
-    if (!transaction_id || !mobile_number || !plan_id) {
-        return res.status(400).json({ error: 'Missing details' });
-    }
-
-    if (!FLW_SECRET_KEY) return res.status(500).json({ error: 'Server Error: Key Missing' });
+    // Basic Validation
+    if (!finalRef) return res.status(400).json({ error: 'Missing Reference' });
+    if (!mobile_number) return res.status(400).json({ error: 'Missing Phone' });
+    if (!plan_id) return res.status(400).json({ error: 'Missing Plan ID' });
 
     const client = new Client({ connectionString: CONNECTION_STRING, ssl: { rejectUnauthorized: false } });
 
     try {
         await client.connect();
 
-        // 1. Get Plan Info
+        // 1. AGGRESSIVE SAVE: Save immediately to ensure Admin panel visibility
+        // We use ON CONFLICT DO UPDATE so duplicate calls don't crash
+        try {
+             await client.query(
+                `INSERT INTO transactions (phone_number, network, plan_id, status, reference, created_at) 
+                 VALUES ($1, 'unknown', $2, 'processing', $3, NOW())
+                 ON CONFLICT (reference) DO UPDATE SET status = 'processing'`,
+                [mobile_number, plan_id, finalRef]
+            );
+        } catch(dbErr) { console.error("DB Insert Error", dbErr); }
+
+        // 2. Get Plan
         const planRes = await client.query('SELECT * FROM plans WHERE id = $1', [plan_id]);
         if (planRes.rows.length === 0) {
+            await client.query("UPDATE transactions SET status='failed_plan' WHERE reference=$1", [finalRef]);
             await client.end();
             return res.status(400).json({ error: 'Invalid Plan ID' }); 
         }
         const plan = planRes.rows[0];
-
-        // 2. IMMEDIATE SAVE (Pending)
-        // We use the input transaction_id as the reference initially
-        await client.query(
-            `INSERT INTO transactions (phone_number, network, plan_id, status, reference, created_at) 
-             VALUES ($1, $2, $3, 'pending_verif', $4, NOW())
-             ON CONFLICT (reference) DO NOTHING`,
-            [mobile_number, plan.network, plan.id, String(transaction_id)]
-        );
-
-        // 3. SMART VERIFICATION (The Fix)
-        let flwData;
         
-        // Check if input is likely a Numeric ID or a String Ref
+        // Update network in DB
+        await client.query("UPDATE transactions SET network=$1 WHERE reference=$2", [plan.network, finalRef]);
+
+        // 3. Verify Payment
+        if (!FLW_SECRET_KEY) {
+             await client.end(); return res.status(500).json({ error: 'Server Config Error' });
+        }
+
+        let flwData;
         const isNumericId = /^\d+$/.test(String(transaction_id));
 
-        if (isNumericId) {
-            // Standard Verify by ID
+        if (isNumericId && transaction_id) {
             const flwRes = await fetch(`https://api.flutterwave.com/v3/transactions/${transaction_id}/verify`, { 
                 headers: { 'Authorization': `Bearer ${FLW_SECRET_KEY}` } 
             });
             const json = await flwRes.json();
-            flwData = json.data; // Standard verify returns data in .data
+            flwData = json.data;
         } else {
-            // Verify by Reference (for Resume/Recovery flow)
-            // We search for the transaction by ref
-            const flwRes = await fetch(`https://api.flutterwave.com/v3/transactions?tx_ref=${transaction_id}`, { 
+            const flwRes = await fetch(`https://api.flutterwave.com/v3/transactions?tx_ref=${finalRef}`, { 
                 headers: { 'Authorization': `Bearer ${FLW_SECRET_KEY}` } 
             });
             const json = await flwRes.json();
-            
-            // The search returns an array of transactions. We take the first one.
-            if (json.data && json.data.length > 0) {
-                flwData = json.data[0];
-            } else {
-                flwData = null; // Not found
-            }
+            if (json.data && json.data.length > 0) flwData = json.data[0];
         }
 
-        // 4. CHECK PAYMENT STATUS
+        // 4. Check Status
         if (!flwData || flwData.status !== 'successful') {
-            console.error("Verification Failed. Data:", JSON.stringify(flwData));
             await client.query("UPDATE transactions SET status='failed_verif', api_response=$1 WHERE reference=$2", 
-                ["Flutterwave: Payment not found or failed", String(transaction_id)]);
+                ["Payment not successful", finalRef]);
             await client.end();
-            return res.status(400).json({ error: 'Payment Verification Failed: ' + (flwData?.status || 'Not Found') });
+            return res.status(400).json({ error: 'Payment Failed or Not Found' });
         }
         
-        // Check Amount
         if (flwData.amount < plan.price) {
-            await client.query("UPDATE transactions SET status='failed_amount', api_response='Insufficient Payment' WHERE reference=$1", 
-                [String(transaction_id)]);
+            await client.query("UPDATE transactions SET status='failed_amount' WHERE reference=$1", [finalRef]);
             await client.end();
-            return res.status(400).json({ error: 'Insufficient Amount: Paid ' + flwData.amount });
+            return res.status(400).json({ error: 'Insufficient Payment' });
         }
 
-        // 5. Send Data via Amigo
+        // 5. Send to Amigo
         const NET_MAP = { 'mtn': 1, 'glo': 2, 'airtel': 3, '9mobile': 4 };
         const networkInt = NET_MAP[plan.network.toLowerCase()] || 1;
 
         const options = {
             method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json', 
-                'X-API-Key': AMIGO_API_KEY 
-            },
+            headers: { 'Content-Type': 'application/json', 'X-API-Key': AMIGO_API_KEY },
             body: JSON.stringify({ 
                 network: networkInt, 
                 mobile_number: mobile_number, 
@@ -106,33 +98,23 @@ export default async function handler(req, res) {
                 Ported_number: !!ported 
             })
         };
-
         if (PROXY_URL) options.agent = new HttpsProxyAgent(PROXY_URL);
 
         const amigoRes = await fetch('https://amigo.ng/api/data/', options);
         const amigoResult = await amigoRes.json();
 
-        // 6. Save Final Status
+        // 6. Final Save
         const isSuccess = amigoResult.success === true || amigoResult.Status === 'successful';
-        const status = isSuccess ? 'success' : 'failed';
-        
-        await client.query(
-            "UPDATE transactions SET status=$1, api_response=$2 WHERE reference=$3",
-            [status, JSON.stringify(amigoResult), String(transaction_id)]
-        );
+        await client.query("UPDATE transactions SET status=$1, api_response=$2 WHERE reference=$3", 
+            [isSuccess ? 'success' : 'failed', JSON.stringify(amigoResult), finalRef]);
         
         await client.end();
 
-        if (isSuccess) {
-            return res.status(200).json({ success: true, message: 'Data Sent!' });
-        } else {
-            const errorMsg = amigoResult.message || amigoResult.error_message || "Provider Error";
-            return res.status(400).json({ success: false, error: 'Provider: ' + errorMsg });
-        }
+        if (isSuccess) return res.status(200).json({ success: true, message: 'Data Sent!' });
+        else return res.status(400).json({ success: false, error: 'Provider Error: ' + (amigoResult.message || amigoResult.error_message) });
 
     } catch (e) {
         if(client) await client.end();
-        console.error("System Error:", e);
         return res.status(500).json({ error: e.message });
     }
-    }
+}
