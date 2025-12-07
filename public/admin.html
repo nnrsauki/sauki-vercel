@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sauki Admin Pro</title>
   <style>
-    /* ... (Keep existing styles) ... */
     :root { --admin-bg: #1e1e2d; --admin-panel: #2b2b40; --accent: #3699ff; --text: #e1e1e6; }
     body { font-family: 'Segoe UI', sans-serif; background: var(--admin-bg); color: var(--text); margin: 0; padding: 20px; }
     
@@ -69,7 +68,8 @@
       <button class="btn-primary" style="background:transparent; text-align:left; color:#f64e60" onclick="showTab('complaints')">Complaints</button>
       <button class="btn-primary" style="background:transparent; text-align:left; color:#FFA800" onclick="showTab('msg')">Broadcast Message</button>
       <div style="margin-top:40px; border-top:1px solid #444; padding-top:20px;">
-        <button class="btn-danger" onclick="location.reload()">Logout</button>
+        <!-- UPDATED LOGOUT BUTTON -->
+        <button class="btn-danger" onclick="logout()">Logout</button>
       </div>
     </aside>
 
@@ -140,7 +140,7 @@
   <script>
     let authHeader = '';
     let allPlans = [];
-    let currentTxData = []; // Store currently displayed transactions for export
+    let currentTxData = []; 
 
     async function adminLogin() {
       const u = document.getElementById('adm-u').value;
@@ -156,6 +156,17 @@
           loadMessage(); 
         } else { alert("Access Denied"); }
       } catch(e) { alert("Connection Error"); }
+    }
+
+    // --- NEW LOGOUT FUNCTION ---
+    function logout() {
+        authHeader = ''; // Wipe credentials from memory
+        document.getElementById('app-ui').style.display = 'none'; // Hide dashboard
+        document.getElementById('login-modal').style.display = 'flex'; // Show login
+        
+        // Wipe inputs so they don't auto-fill aggressively
+        document.getElementById('adm-u').value = '';
+        document.getElementById('adm-p').value = '';
     }
 
     function showTab(t) {
@@ -225,7 +236,7 @@
       loadPlans();
     }
 
-    // --- TRANSACTIONS (Updated) ---
+    // --- TRANSACTIONS ---
     async function loadTx(isSearch = false) {
       let url = '/api/admin?action=transactions';
       if(isSearch) {
@@ -237,7 +248,7 @@
       const data = await res.json();
       if(data.error) return alert(data.error);
       
-      currentTxData = data; // Store for export
+      currentTxData = data; 
 
       const rows = data.map(t => {
         const badge = t.status === 'success' ? 's-success' : 's-failed';
@@ -340,3 +351,4 @@
 </html>
 
 
+  
