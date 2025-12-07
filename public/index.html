@@ -127,7 +127,6 @@
   </div>
   
   <div class="app-screen">
-    <!-- Premium Broadcast -->
     <div id="announcement-banner"></div>
     
     <div class="header">
@@ -143,7 +142,6 @@
       <p>Cheaper rates. Simpler process.</p>
     </div>
     
-    <!-- NETWORK BUTTONS -->
     <div class="network-row">
       <div class="net-card" onclick="fetchPlans('mtn')">
           <img src="mtn.png" alt="MTN" onerror="this.style.background='#FFCC00'">
@@ -319,12 +317,16 @@
         }
     }
 
-    // --- RECEIPT GENERATION (UPDATED FOOTER) ---
+    // --- RECEIPT GENERATION (UPDATED WITH DATE & TIME) ---
     function generateReceipt(ref, phone, plan, date) {
         const receiptDiv = document.createElement('div');
         receiptDiv.id = 'receipt-preview';
         receiptDiv.style.cssText = `position: fixed; top: -9999px; left: 0; width: 350px; background: white; padding: 30px; border-radius: 0; font-family: sans-serif; color: #000; border: 1px solid #ccc;`;
         
+        // FORMAT DATE AND TIME
+        const d = new Date(date);
+        const dateTimeStr = d.toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+
         receiptDiv.innerHTML = `
             <div style="text-align:center; border-bottom: 2px dashed #ccc; padding-bottom: 20px; margin-bottom: 20px;">
                 <img src="logo.png" style="width: 60px; height: 60px; margin-bottom: 10px;" onerror="this.style.display='none'">
@@ -333,7 +335,7 @@
             </div>
             <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:#666">Status</span><span style="font-weight:bold; color:green">SUCCESSFUL</span></div>
             <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:#666">Reference</span><span style="font-family:monospace">${ref}</span></div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:#666">Date</span><span>${new Date(date).toLocaleDateString()}</span></div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:#666">Date & Time</span><span>${dateTimeStr}</span></div>
             <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:#666">Mobile Number</span><span>${phone}</span></div>
             <div style="display:flex; justify-content:space-between; margin-bottom:20px;"><span style="color:#666">Plan</span><span style="font-weight:bold">${plan}</span></div>
             <div style="text-align:center; margin-top:20px; color:#888; font-size:0.7rem; border-top: 1px solid #eee; padding-top: 10px;">
@@ -344,7 +346,7 @@
         document.body.appendChild(receiptDiv);
 
         if(typeof html2canvas !== 'undefined') {
-           html2canvas(receiptDiv).then(canvas => {
+            html2canvas(receiptDiv).then(canvas => {
                 const img = canvas.toDataURL("image/png");
                 const link = document.createElement('a');
                 link.download = `Sauki-Receipt-${ref}.png`;
