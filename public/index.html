@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Sauki Data</title>
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
   <style>
-    /* ... (Keep existing CSS variables and styles) ... */
     :root { 
         --bg-gradient: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%); 
         --glass-surface: rgba(255, 255, 255, 0.55); 
@@ -30,63 +30,94 @@
         padding-bottom: env(safe-area-inset-bottom); 
     }
 
-    /* ... (Keep other existing styles for status-bar, app-screen, header, hero, network-row, net-card, action-grid, btn-glass, floating-footer, modal-overlay, sheet, input-field, btn-primary, btn-secondary, plan-list-item, loader, transfer-box, copy-toast) ... */
-    
     .status-bar { height: 44px; padding: 0 20px; padding-top: max(5px, env(safe-area-inset-top)); display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; font-weight: 600; color: var(--text-gray); z-index: 10; }
     .status-pill { background: rgba(255,255,255,0.4); padding: 4px 12px; border-radius: 20px; backdrop-filter: blur(10px); }
-    .app-screen { flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; padding: 10px 24px; max-width: 500px; margin: 0 auto; width: 100%; position: relative; }
     
+    .app-screen { 
+        flex: 1; 
+        display: flex; 
+        flex-direction: column; 
+        justify-content: space-evenly; 
+        padding: 10px 24px; 
+        max-width: 500px; 
+        margin: 0 auto; 
+        width: 100%; 
+        position: relative; 
+    }
+    
+    /* PREMIUM BROADCAST UI */
     #announcement-banner {
-        display: none; position: absolute; top: 0; left: 0; right: 0; margin: 0 24px; background: rgba(255, 255, 255, 0.65); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.6); color: #d9480f; padding: 8px 16px; border-radius: 30px; font-size: 0.8rem; font-weight: 600; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.05); z-index: 50; animation: floatIn 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        display: none;
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        margin: 0 24px;
+        background: rgba(255, 255, 255, 0.65);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255,255,255,0.6);
+        color: #d9480f; 
+        padding: 8px 16px;
+        border-radius: 30px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-align: center;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        z-index: 50;
+        animation: floatIn 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     @keyframes floatIn { from { opacity: 0; transform: translateY(-20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
     .header { display: flex; align-items: center; gap: 12px; margin-bottom: 5px; }
     .header img { width: 50px; height: 50px; border-radius: 14px; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
     .brand-name { font-weight: 800; font-size: 1.3rem; letter-spacing: -0.5px; }
+    
     .hero { text-align: center; margin-top: -10px; }
     .hero h2 { font-size: 2rem; font-weight: 800; line-height: 1; margin-bottom: 8px; background: -webkit-linear-gradient(90deg, #1c1c1e, #3a3a3c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     .hero p { font-size: 0.95rem; color: var(--text-gray); font-weight: 500; }
+    
     .network-row { display: flex; justify-content: space-between; gap: 12px; margin: 10px 0; }
-    .net-card { flex: 1; background: var(--glass-surface); border: 1px solid var(--glass-border); backdrop-filter: blur(20px); padding: 18px 10px; border-radius: var(--radius-m); display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(0,0,0,0.02); transition: transform 0.2s; cursor: pointer; }
+    .net-card { flex: 1; background: var(--glass-surface); border: 1px solid var(--glass-border); backdrop-filter: blur(20px); padding: 18px 10px; border-radius: var(--radius-m); display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(0,0,0,0.02); transition: transform 0.2s; cursor: pointer; z-index: 10; position: relative; }
     .net-card:active { transform: scale(0.95); background: rgba(255,255,255,0.8); }
     .net-card img { width: 48px; height: 48px; margin-bottom: 8px; object-fit: contain; }
     .net-card span { font-weight: 600; font-size: 0.85rem; }
+    
     .action-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px; }
     .btn-glass { background: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.6); padding: 14px; border-radius: var(--radius-m); font-weight: 600; color: var(--primary); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font-size: 0.75rem; cursor: pointer; text-align:center; transition: background 0.2s; }
     .btn-glass:active { background: rgba(255,255,255,0.7); }
+    
     .floating-footer { background: rgba(255, 255, 255, 0.45); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); border: 1px solid rgba(255, 255, 255, 0.6); border-radius: 28px; padding: 12px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.05); }
     .footer-icons img { height: 20px; margin: 0 8px; opacity: 0.7; grayscale: 100%; }
     .footer-text { font-size: 0.65rem; color: var(--text-gray); margin-top: 4px; font-weight: 600; }
+    
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.1); backdrop-filter: blur(8px); z-index: 2000; display: none; align-items: flex-end; justify-content: center; }
     .modal-overlay.active { display: flex; }
     .sheet { background: #fff; width: 100%; max-width: 500px; border-radius: 32px 32px 0 0; padding: 24px; box-shadow: 0 -10px 50px rgba(0,0,0,0.15); animation: slideUp 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275); max-height: 85vh; overflow-y: auto; }
     @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
     .sheet-handle { width: 40px; height: 5px; background: #e5e5ea; border-radius: 10px; margin: 0 auto 20px; }
+    
     .input-field { width: 100%; padding: 16px; background: #f2f2f7; border: none; border-radius: 16px; margin-bottom: 12px; font-size: 1rem; outline: none; transition: 0.2s; }
     .input-field:focus { background: #e5e5ea; }
     textarea.input-field { resize: none; min-height: 100px; font-family:inherit; }
     .btn-primary { width: 100%; padding: 18px; background: var(--primary); color: #fff; border: none; border-radius: 18px; font-weight: 700; font-size: 1rem; cursor: pointer; box-shadow: 0 8px 20px rgba(0,122,255,0.25); transition: transform 0.1s; }
     .btn-primary:active { transform: scale(0.98); }
     .btn-secondary { width: 100%; padding: 16px; background: transparent; color: var(--text-gray); border: none; font-weight: 600; cursor: pointer; margin-top: 5px; }
+    
     .plan-list-item { display: flex; justify-content: space-between; padding: 16px; border-bottom: 1px solid #f5f5f5; cursor: pointer; }
     .loader { width: 24px; height: 24px; border: 3px solid #eee; border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s infinite linear; margin: 0 auto; }
     @keyframes spin { to { transform: rotate(360deg); } }
+
     .transfer-box { background: #f9f9f9; border: 1px dashed #ccc; border-radius: 16px; padding: 20px; text-align: center; margin: 15px 0 25px 0; }
     .account-num { font-size: 2rem; font-weight: 800; color: #000; letter-spacing: 1px; margin: 5px 0 0 0; user-select: all; }
     .bank-name { font-size: 0.9rem; color: var(--text-gray); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
     .beneficiary-name { font-size: 0.85rem; color: #000; font-weight: 600; margin: 5px 0 10px 0; background: #eee; display: inline-block; padding: 4px 10px; border-radius: 8px; }
     .copy-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: #fff; padding: 8px 16px; border-radius: 20px; font-size: 0.8rem; pointer-events: none; opacity: 0; transition: opacity 0.3s; z-index: 3000; }
     .copy-toast.show { opacity: 1; }
-
-    /* Receipt Styles (Hidden by default) */
-    #receipt-canvas { display: none; }
   </style>
-  <!-- Load HTML2Canvas for Receipt Generation -->
-  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 </head>
 <body>
-  <!-- ... (Keep body structure same as previous response, just ensure script is updated) ... -->
   <div class="status-bar">
     <div class="status-pill"><span style="font-size:12px">saukidatalinks@gmail.com</span></div>
     <div style="display:flex; gap:15px;">
@@ -96,6 +127,7 @@
   </div>
   
   <div class="app-screen">
+    <!-- Premium Broadcast -->
     <div id="announcement-banner"></div>
     
     <div class="header">
@@ -111,10 +143,20 @@
       <p>Cheaper rates. Simpler process.</p>
     </div>
     
+    <!-- NETWORK BUTTONS (Now with explicit onclicks) -->
     <div class="network-row">
-      <div class="net-card" onclick="fetchPlans('mtn')"><img src="mtn.png" alt="MTN" onerror="this.style.background='#FFCC00'"><span>MTN</span></div>
-      <div class="net-card" onclick="fetchPlans('glo')"><img src="glo.png" alt="Glo" onerror="this.style.background='#00C300'"><span>Glo</span></div>
-      <div class="net-card" onclick="fetchPlans('airtel')"><img src="airtel.png" alt="Airtel" onerror="this.style.background='#FF0000'"><span>Airtel</span></div>
+      <div class="net-card" onclick="fetchPlans('mtn')">
+          <img src="mtn.png" alt="MTN" onerror="this.style.background='#FFCC00'">
+          <span>MTN</span>
+      </div>
+      <div class="net-card" onclick="fetchPlans('glo')">
+          <img src="glo.png" alt="Glo" onerror="this.style.background='#00C300'">
+          <span>Glo</span>
+      </div>
+      <div class="net-card" onclick="fetchPlans('airtel')">
+          <img src="airtel.png" alt="Airtel" onerror="this.style.background='#FF0000'">
+          <span>Airtel</span>
+      </div>
     </div>
     
     <div class="action-grid">
@@ -126,7 +168,7 @@
           <span style="font-size:1.5rem">💬</span> 
           <span>Complaint</span>
       </div>
-      <div class="btn-glass" onclick="openTrackOrder()"> <!-- New Track Order Button -->
+      <div class="btn-glass" onclick="openTrackOrder()">
           <span style="font-size:1.5rem">🔍</span> 
           <span>Track Order</span>
       </div>
@@ -134,7 +176,7 @@
 
     <div class="floating-footer">
       <div class="footer-icons"><img src="smedan.png" alt="SMEDAN" onerror="this.style.display='none'"><img src="coat.png" alt="NIGERIA" onerror="this.style.display='none'"></div>
-      <div class="footer-text">&copy; 2025 Sauki Data Links<br>Developed by Abdallah Nangere</div>
+      <div class="footer-text">&copy; 2025 Sauki Data Links<br>Developed with ❤️ by Abdallah Nangere</div>
     </div>
   </div>
   
@@ -144,7 +186,6 @@
   <div id="toast" class="copy-toast">Copied to clipboard!</div>
 
   <script>
-    // ... (Keep existing script constants and window load logic) ...
     const ADMIN_CONTACT = "2348164135836";
     let currentPlan = {};
     let activeTransactionRef = "";
@@ -168,11 +209,47 @@
         } catch(e) {}
     });
 
-    // --- TRACK ORDER FUNCTION ---
+    // --- MAIN FUNCTIONALITY: FETCH PLANS ---
+    async function fetchPlans(net) {
+        showSheet(`<div class="loader"></div><p style="text-align:center; margin-top:10px">Loading ${net.toUpperCase()} Plans...</p>`);
+        try {
+            const res = await fetch(`/api/plans?network=${net}`);
+            if (!res.ok) throw new Error("API Error");
+            const plans = await res.json();
+            
+            if(!plans.length) { 
+                showSheet(`<h3 style="text-align:center">No Plans Found</h3><p style="text-align:center; color:#666">Please try again later.</p><button class="btn-secondary" onclick="closeSheet()">Back</button>`); 
+                return; 
+            }
+            
+            let html = `<h3 style="text-align:center; margin-bottom:20px">${net.toUpperCase()} Plans</h3><div style="max-height:50vh; overflow-y:auto">`;
+            html += plans.map(p => `<div class="plan-list-item" onclick="buy('${p.id}', '${p.name}', ${p.price}, '${net}')"><b>${p.name}</b><span style="color:var(--primary)">₦${p.price}</span></div>`).join('');
+            html += `</div><button class="btn-secondary" onclick="closeSheet()">Back</button>`;
+            showSheet(html);
+        } catch(e) { 
+            console.error(e);
+            showSheet(`<p style="text-align:center; color:red">Connection Failed</p><p style="text-align:center; font-size:0.8rem">Could not load plans.</p><button class="btn-secondary" onclick="closeSheet()">Back</button>`); 
+        }
+    }
+
+    function buy(id, name, price, net) {
+        currentPlan = { id, name, price, net };
+        showSheet(`
+            <h3 style="text-align:center">₦${price}</h3>
+            <p style="text-align:center; color:#888; margin-bottom:20px">${net.toUpperCase()} ${name}</p>
+            <input class="input-field" id="u-ph" type="tel" placeholder="Phone Number (080...)" maxlength="11">
+            <input class="input-field" id="u-nm" placeholder="Your Name">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px; padding-left:5px"><input type="checkbox" id="u-pt" style="transform:scale(1.2)"> <label>Ported Number?</label></div>
+            <button class="btn-primary" onclick="initiateTransfer()">Pay with Transfer</button>
+            <button class="btn-secondary" onclick="fetchPlans('${net}')">Back</button>
+        `);
+    }
+
+    // --- TRACK ORDER FUNCTION (UPDATED) ---
     function openTrackOrder() {
         showSheet(`
             <h3 style="text-align:center; margin-bottom:15px">Track Order</h3>
-            <p style="text-align:center; color:#666; margin-bottom:20px">Enter your Phone Number or Reference ID to check status.</p>
+            <p style="text-align:center; color:#666; margin-bottom:20px">Enter your Phone Number to see recent orders.</p>
             <input class="input-field" id="track-input" placeholder="Phone Number or Ref ID">
             <button class="btn-primary" onclick="trackOrder()">Check Status</button>
             <button class="btn-secondary" onclick="closeSheet()">Close</button>
@@ -186,82 +263,86 @@
         showSheet(`<div class="loader"></div><p style="text-align:center">Searching...</p>`);
         
         try {
-            // Using a new endpoint or reusing admin search logic securely? 
-            // For security, usually tracking is limited. We'll use a new public endpoint.
             const res = await fetch(`/api/track?q=${val}`);
             const data = await res.json();
             
-            if(data.found) {
-                const t = data.transaction;
-                const statusColor = t.status === 'success' ? '#10b981' : (t.status === 'pending' ? '#f59e0b' : '#ef4444');
-                let html = `
-                    <div style="text-align:center">
-                        <div style="font-size:40px; margin-bottom:10px">${t.status === 'success' ? '✅' : '⏳'}</div>
-                        <h3>${t.status.toUpperCase()}</h3>
-                        <p style="color:#666">${t.network} ${t.plan_id}</p>
-                        <p style="font-family:monospace; background:#eee; padding:5px; border-radius:5px; display:inline-block">${t.reference}</p>
-                        <div style="margin-top:20px">
-                            ${t.status === 'success' ? `<button class="btn-primary" onclick="generateReceipt('${t.reference}', '${t.phone_number}', '${t.plan_id}', '${t.created_at}')">Download Receipt</button>` : ''}
-                            <button class="btn-secondary" onclick="closeSheet()">Close</button>
+            if(data.found && data.transactions) {
+                let html = `<h3 style="text-align:center; margin-bottom:15px">Recent Orders</h3><div style="max-height:60vh; overflow-y:auto">`;
+                
+                data.transactions.forEach(t => {
+                    // Simplify Status Labels
+                    let statusLabel = "Processing";
+                    let statusColor = "#f59e0b"; // Orange
+                    let icon = "⏳";
+
+                    if (t.status === 'success') {
+                        statusLabel = "Successful";
+                        statusColor = "#10b981"; // Green
+                        icon = "✅";
+                    } else if (t.status.startsWith('failed')) {
+                        statusLabel = "Failed";
+                        statusColor = "#ef4444"; // Red
+                        icon = "❌";
+                    }
+
+                    const date = new Date(t.created_at).toLocaleDateString();
+                    const time = new Date(t.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+                    html += `
+                        <div style="background:#f9f9f9; padding:15px; border-radius:12px; margin-bottom:12px; border-left: 5px solid ${statusColor}">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px">
+                                <span style="font-weight:800; text-transform:uppercase; font-size:0.9rem">${t.network}</span>
+                                <span style="font-size:0.8rem; color:#888">${date} ${time}</span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:center">
+                                <span style="font-size:1rem">${t.plan_id}</span>
+                                <span style="font-weight:bold; color:${statusColor}; display:flex; align-items:center; gap:5px">
+                                    ${icon} ${statusLabel}
+                                </span>
+                            </div>
+                            ${t.status === 'success' ? `
+                                <div style="margin-top:10px; border-top:1px dashed #ddd; padding-top:10px; text-align:right">
+                                    <button onclick="generateReceipt('${t.reference}', '${t.phone_number}', '${t.plan_id}', '${t.created_at}')" style="background:transparent; border:1px solid #ccc; padding:5px 10px; border-radius:6px; font-size:0.75rem; cursor:pointer">Download Receipt</button>
+                                </div>
+                            ` : ''}
                         </div>
-                    </div>
-                `;
+                    `;
+                });
+
+                html += `</div><button class="btn-secondary" onclick="closeSheet()">Close</button>`;
                 showSheet(html);
             } else {
                 showSheet(`<h3 style="text-align:center">Not Found</h3><p style="text-align:center">No order found with that ID or Phone.</p><button class="btn-secondary" onclick="openTrackOrder()">Try Again</button>`);
             }
         } catch(e) {
+            console.error(e);
             showSheet(`<p style="text-align:center">Error fetching status</p><button class="btn-secondary" onclick="closeSheet()">Close</button>`);
         }
     }
 
     // --- RECEIPT GENERATION ---
     function generateReceipt(ref, phone, plan, date) {
-        // Create a hidden div for the receipt
         const receiptDiv = document.createElement('div');
         receiptDiv.id = 'receipt-preview';
-        receiptDiv.style.cssText = `
-            position: fixed; top: -9999px; left: 0; width: 350px; background: white; 
-            padding: 30px; border-radius: 0; font-family: sans-serif; color: #000;
-            border: 1px solid #ccc;
-        `;
+        receiptDiv.style.cssText = `position: fixed; top: -9999px; left: 0; width: 350px; background: white; padding: 30px; border-radius: 0; font-family: sans-serif; color: #000; border: 1px solid #ccc;`;
         
         receiptDiv.innerHTML = `
             <div style="text-align:center; border-bottom: 2px dashed #ccc; padding-bottom: 20px; margin-bottom: 20px;">
-                <img src="logo.png" style="width: 60px; height: 60px; margin-bottom: 10px;">
+                <img src="logo.png" style="width: 60px; height: 60px; margin-bottom: 10px;" onerror="this.style.display='none'">
                 <h2 style="margin:0; font-size: 1.2rem;">SAUKI DATA LINKS</h2>
                 <p style="margin:5px 0; color: #666; font-size: 0.8rem;">Transaction Receipt</p>
             </div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                <span style="color:#666">Status</span>
-                <span style="font-weight:bold; color:green">SUCCESSFUL</span>
-            </div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                <span style="color:#666">Reference</span>
-                <span style="font-family:monospace">${ref}</span>
-            </div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                <span style="color:#666">Date</span>
-                <span>${new Date(date).toLocaleDateString()}</span>
-            </div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                <span style="color:#666">Mobile Number</span>
-                <span>${phone}</span>
-            </div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
-                <span style="color:#666">Plan</span>
-                <span style="font-weight:bold">${plan}</span>
-            </div>
-            <div style="text-align:center; margin-top:20px; color:#888; font-size:0.7rem; border-top: 1px solid #eee; padding-top: 10px;">
-                Thank you for choosing Sauki Data Links.<br>support@saukidata.com
-            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:#666">Status</span><span style="font-weight:bold; color:green">SUCCESSFUL</span></div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:#666">Reference</span><span style="font-family:monospace">${ref}</span></div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:#666">Date</span><span>${new Date(date).toLocaleDateString()}</span></div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:#666">Mobile Number</span><span>${phone}</span></div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:20px;"><span style="color:#666">Plan</span><span style="font-weight:bold">${plan}</span></div>
+            <div style="text-align:center; margin-top:20px; color:#888; font-size:0.7rem; border-top: 1px solid #eee; padding-top: 10px;">Thank you for choosing Sauki Data Links.<br>support@saukidata.com</div>
         `;
         document.body.appendChild(receiptDiv);
 
-        // Convert to Image using html2canvas
-        // Note: html2canvas must be loaded (I added the script tag in head)
         if(typeof html2canvas !== 'undefined') {
-            html2canvas(receiptDiv).then(canvas => {
+       html2canvas(receiptDiv).then(canvas => {
                 const img = canvas.toDataURL("image/png");
                 const link = document.createElement('a');
                 link.download = `Sauki-Receipt-${ref}.png`;
@@ -275,55 +356,10 @@
         }
     }
 
-    // --- EXISTING FUNCTIONS (buy, verify, etc.) UPDATED FOR RECEIPT ---
-    async function verify(txId, isRec = false) {
-        showSheet(`<div class="loader"></div><p style="text-align:center; margin-top:10px">Verifying Payment...</p>`);
-        // ... (Keep existing verify logic) ...
-        let d = isRec ? JSON.parse(localStorage.getItem('sauki_pend')) : { ph: document.getElementById('u-ph')?.value || "Unknown", id: currentPlan.id, net: currentPlan.net, pt: false };
-        if((!d || d.ph === "Unknown") && localStorage.getItem('sauki_pend')) d = JSON.parse(localStorage.getItem('sauki_pend'));
-
-        try {
-            const res = await fetch('/api/purchase', {
-                method: 'POST',
-                headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({ transaction_id: txId, tx_ref: txId, mobile_number: d?.ph, plan_id: d?.id, network: d?.net, ported: d?.pt })
-            });
-            const resp = await res.json();
-            
-            if(resp.success) {
-                localStorage.removeItem('sauki_pend');
-                // SHOW RECEIPT OPTION HERE
-                showSheet(`
-                    <div style="text-align:center">
-                        <div style="font-size:50px; margin-bottom:10px">✅</div>
-                        <h2 style="margin-bottom:10px">Success!</h2>
-                        <p style="color:#666; margin-bottom:20px">Data sent to ${d.ph}</p>
-                        <button class="btn-primary" onclick="generateReceipt('${txId}', '${d.ph}', '${d.id || 'Data Plan'}', '${new Date().toISOString()}')">Download Receipt</button>
-                        <button class="btn-secondary" onclick="closeSheet()">Done</button>
-                    </div>
-                `);
-            } else {
-                // ... (Keep existing failure logic) ...
-                let msg = resp.error || "Transaction not found yet.";
-                const supportMsg = `Transaction Check:%0ARef: ${txId}%0APhone: ${d.ph}`;
-                showSheet(`<div style="text-align:center"><div style="font-size:50px; margin-bottom:10px">⏳</div><h3 style="margin-bottom:10px">Payment not confirmed</h3><p style="color:#666; margin-bottom:20px; font-size:0.9rem">Please wait a moment.</p><button class="btn-primary" onclick="verify('${txId}', true)">Check Again</button><button class="btn-secondary" onclick="window.location='https://wa.me/${ADMIN_CONTACT}?text=${supportMsg}'">Contact Support</button></div>`);
-            }
-        } catch(e) { showSheet(`<p style="text-align:center">Connection Error</p><button class="btn-primary" onclick="verify('${txId}', true)">Retry</button>`); }
-    }
-
-    // ... (Keep openComplaint, submitComplaint, initiateTransfer, etc.) ...
+    // ... (Keep the rest of the functions: openComplaint, submitComplaint, verify, initiateTransfer, renderTransferUI, copyToClipboard, etc.) ...
+    
     function openComplaint() {
-        showSheet(`
-            <h3 style="text-align:center; margin-bottom:15px">Register Complaint</h3>
-            <p style="text-align:center; font-size:0.9rem; color:#666; margin-bottom:20px">
-                Having issues? We are here to help.
-            </p>
-            <input class="input-field" id="c-name" placeholder="Your Name (Optional)">
-            <input class="input-field" id="c-phone" type="tel" placeholder="Phone Number (Required)">
-            <textarea class="input-field" id="c-msg" placeholder="Describe your issue..."></textarea>
-            <button class="btn-primary" onclick="submitComplaint()">Submit Complaint</button>
-            <button class="btn-secondary" onclick="closeSheet()">Cancel</button>
-        `);
+        showSheet(`<h3 style="text-align:center; margin-bottom:15px">Register Complaint</h3><p style="text-align:center; font-size:0.9rem; color:#666; margin-bottom:20px">Having issues? We are here to help.</p><input class="input-field" id="c-name" placeholder="Your Name (Optional)"><input class="input-field" id="c-phone" type="tel" placeholder="Phone Number (Required)"><textarea class="input-field" id="c-msg" placeholder="Describe your issue..."></textarea><button class="btn-primary" onclick="submitComplaint()">Submit Complaint</button><button class="btn-secondary" onclick="closeSheet()">Cancel</button>`);
     }
     
     async function submitComplaint() {
@@ -336,7 +372,7 @@
         btn.innerText = "Submitting..."; btn.disabled = true;
         try {
             const res = await fetch('/api/complaints', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, phone, message: msg }) });
-            if(!res.ok) throw new Error("Server Error");
+            if(!res.ok) { const text = await res.text(); if(text.includes('<!DOCTYPE') || text.includes('<html')) throw new Error("Server Error: API not reachable"); throw new Error(text); }
             const data = await res.json();
             if(data.success) { showSheet(`<div style="text-align:center"><div style="font-size:40px; margin-bottom:10px">✅</div><h3>Complaint Received</h3><p style="color:#666; margin:10px 0">We will review your issue shortly.</p><button class="btn-primary" onclick="closeSheet()">Done</button></div>`); } 
             else { throw new Error(data.error || "Failed"); }
@@ -348,31 +384,43 @@
     function subscribe() { window.location = `https://wa.me/${ADMIN_CONTACT}?text=Subscribe`; }
     function showSheet(html) { document.getElementById('sheet-content').innerHTML = html; document.getElementById('modal-overlay').classList.add('active'); }
     function closeSheet() { document.getElementById('modal-overlay').classList.remove('active'); }
+    
+    async function initiateTransfer() {
+        const ph = document.getElementById('u-ph').value; const nm = document.getElementById('u-nm').value; const pt = document.getElementById('u-pt').checked;
+        if(ph.length < 10 || !nm) return alert("Invalid Details");
+        const ref = `Sauki-${ph}-${Date.now()}`; activeTransactionRef = ref; localStorage.setItem('sauki_pend', JSON.stringify({ ref, ph, id: currentPlan.id, net: currentPlan.net, pt, t: Date.now() }));
+        showSheet(`<div class="loader"></div><p style="text-align:center; margin-top:10px">Generating Account...</p>`);
+        try {
+            const res = await fetch('/api/initiate-transfer', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ tx_ref: ref, amount: currentPlan.price, email: "saukidatalinks@gmail.com", phone_number: ph, name: nm, plan_id: currentPlan.id, ported: pt }) });
+            if (!res.ok) throw new Error("API Error");
+            const data = await res.json();
+            if(data.success || data.account_number) renderTransferUI(data, ref); else throw new Error(data.message || "Failed");
+        } catch(e) { showSheet(`<div style="text-align:center"><h3 style="color:#FF3B30">System Busy</h3><p style="color:#666; margin:15px 0;">Could not generate account.</p><button class="btn-secondary" onclick="buy('${currentPlan.id}','${currentPlan.name}',${currentPlan.price},'${currentPlan.net}')">Back</button></div>`); }
+    }
+
     function renderTransferUI(data, ref) {
-        const accNum = data.account_number || data.account || "0000000000";
-        const bankName = data.bank_name || data.bank || "Unknown Bank";
-        const amount = data.amount || currentPlan.price;
-        const accName = "Abdullahi Adam Usman FLW";
-        const html = `
-            <div style="text-align:center">
-                <p style="font-size:0.9rem; color:#888;">Transfer exactly</p>
-                <h2 style="margin-bottom:10px">₦${amount}</h2>
-                <div class="transfer-box" onclick="copyToClipboard('${accNum}')">
-                    <div class="bank-name">${bankName}</div>
-                    <div class="account-num">${accNum}</div>
-                    <div class="beneficiary-name">${accName}</div>
-                    <div style="font-size:0.8rem; color:var(--primary); margin-top:5px">Tap to Copy</div>
-                </div>
-                <div style="background:#fff3cd; color:#856404; padding:10px; border-radius:10px; font-size:0.8rem; margin-bottom:20px;">
-                    ⚠️ Use this account for this transaction only.
-                </div>
-                <button class="btn-primary" onclick="verify('${ref}', false)">I have paid</button>
-                <button class="btn-secondary" onclick="closeSheet()">Cancel</button>
-            </div>
-        `;
+        const accNum = data.account_number || data.account || "0000000000"; const bankName = data.bank_name || data.bank || "Unknown Bank"; const amount = data.amount || currentPlan.price; const accName = "Abdullahi Adam Usman FLW";
+        const html = `<div style="text-align:center"><p style="font-size:0.9rem; color:#888;">Transfer exactly</p><h2 style="margin-bottom:10px">₦${amount}</h2><div class="transfer-box" onclick="copyToClipboard('${accNum}')"><div class="bank-name">${bankName}</div><div class="account-num">${accNum}</div><div class="beneficiary-name">${accName}</div><div style="font-size:0.8rem; color:var(--primary); margin-top:5px">Tap to Copy</div></div><div style="background:#fff3cd; color:#856404; padding:10px; border-radius:10px; font-size:0.8rem; margin-bottom:20px;">⚠️ Use this account for this transaction only.</div><button class="btn-primary" onclick="verify('${ref}', false)">I have paid</button><button class="btn-secondary" onclick="closeSheet()">Cancel</button></div>`;
         showSheet(html);
     }
     function copyToClipboard(text) { navigator.clipboard.writeText(text).then(() => { const t = document.getElementById('toast'); t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000); }); }
+    
+    async function verify(txId, isRec = false) {
+        showSheet(`<div class="loader"></div><p style="text-align:center; margin-top:10px">Verifying Payment...</p>`);
+        let d = isRec ? JSON.parse(localStorage.getItem('sauki_pend')) : { ph: document.getElementById('u-ph')?.value || "Unknown", id: currentPlan.id, net: currentPlan.net, pt: false };
+        if((!d || d.ph === "Unknown") && localStorage.getItem('sauki_pend')) d = JSON.parse(localStorage.getItem('sauki_pend'));
+        try {
+            const res = await fetch('/api/purchase', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ transaction_id: txId, tx_ref: txId, mobile_number: d?.ph, plan_id: d?.id, network: d?.net, ported: d?.pt }) });
+            const resp = await res.json();
+            if(resp.success) {
+                localStorage.removeItem('sauki_pend');
+                showSheet(`<div style="text-align:center"><div style="font-size:50px; margin-bottom:10px">✅</div><h2 style="margin-bottom:10px">Success!</h2><p style="color:#666; margin-bottom:20px">Data sent to ${d.ph}</p><button class="btn-primary" onclick="generateReceipt('${txId}', '${d.ph}', '${d.id || 'Data Plan'}', '${new Date().toISOString()}')">Download Receipt</button><button class="btn-secondary" onclick="closeSheet()">Done</button></div>`);
+            } else {
+                let msg = resp.error || "Transaction not found yet."; const supportMsg = `Transaction Check:%0ARef: ${txId}%0APhone: ${d.ph}`;
+                showSheet(`<div style="text-align:center"><div style="font-size:50px; margin-bottom:10px">⏳</div><h3 style="margin-bottom:10px">Payment not confirmed</h3><p style="color:#666; margin-bottom:20px; font-size:0.9rem">Please wait a moment.</p><button class="btn-primary" onclick="verify('${txId}', true)">Check Again</button><button class="btn-secondary" onclick="window.location='https://wa.me/${ADMIN_CONTACT}?text=${supportMsg}'">Contact Support</button></div>`);
+            }
+        } catch(e) { showSheet(`<p style="text-align:center">Connection Error</p><button class="btn-primary" onclick="verify('${txId}', true)">Retry</button>`); }
+    }
   </script>
 </body>
 </html>
