@@ -143,7 +143,7 @@
       <p>Cheaper rates. Simpler process.</p>
     </div>
     
-    <!-- NETWORK BUTTONS (Now with explicit onclicks) -->
+    <!-- NETWORK BUTTONS -->
     <div class="network-row">
       <div class="net-card" onclick="fetchPlans('mtn')">
           <img src="mtn.png" alt="MTN" onerror="this.style.background='#FFCC00'">
@@ -245,7 +245,7 @@
         `);
     }
 
-    // --- TRACK ORDER FUNCTION (UPDATED) ---
+    // --- TRACK ORDER FUNCTION ---
     function openTrackOrder() {
         showSheet(`
             <h3 style="text-align:center; margin-bottom:15px">Track Order</h3>
@@ -270,7 +270,6 @@
                 let html = `<h3 style="text-align:center; margin-bottom:15px">Recent Orders</h3><div style="max-height:60vh; overflow-y:auto">`;
                 
                 data.transactions.forEach(t => {
-                    // Simplify Status Labels
                     let statusLabel = "Processing";
                     let statusColor = "#f59e0b"; // Orange
                     let icon = "⏳";
@@ -320,7 +319,7 @@
         }
     }
 
-    // --- RECEIPT GENERATION ---
+    // --- RECEIPT GENERATION (UPDATED FOOTER) ---
     function generateReceipt(ref, phone, plan, date) {
         const receiptDiv = document.createElement('div');
         receiptDiv.id = 'receipt-preview';
@@ -337,12 +336,15 @@
             <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:#666">Date</span><span>${new Date(date).toLocaleDateString()}</span></div>
             <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:#666">Mobile Number</span><span>${phone}</span></div>
             <div style="display:flex; justify-content:space-between; margin-bottom:20px;"><span style="color:#666">Plan</span><span style="font-weight:bold">${plan}</span></div>
-            <div style="text-align:center; margin-top:20px; color:#888; font-size:0.7rem; border-top: 1px solid #eee; padding-top: 10px;">Thank you for choosing Sauki Data Links.<br>support@saukidata.com</div>
+            <div style="text-align:center; margin-top:20px; color:#888; font-size:0.7rem; border-top: 1px solid #eee; padding-top: 10px;">
+                Thank you for choosing Sauki Data Links.<br>
+                saukidatalinks@gmail.com | 08164135836
+            </div>
         `;
         document.body.appendChild(receiptDiv);
 
         if(typeof html2canvas !== 'undefined') {
-       html2canvas(receiptDiv).then(canvas => {
+           html2canvas(receiptDiv).then(canvas => {
                 const img = canvas.toDataURL("image/png");
                 const link = document.createElement('a');
                 link.download = `Sauki-Receipt-${ref}.png`;
@@ -356,8 +358,7 @@
         }
     }
 
-    // ... (Keep the rest of the functions: openComplaint, submitComplaint, verify, initiateTransfer, renderTransferUI, copyToClipboard, etc.) ...
-    
+    // ... (Keep openComplaint, submitComplaint, verify, initiateTransfer, renderTransferUI, copyToClipboard) ...
     function openComplaint() {
         showSheet(`<h3 style="text-align:center; margin-bottom:15px">Register Complaint</h3><p style="text-align:center; font-size:0.9rem; color:#666; margin-bottom:20px">Having issues? We are here to help.</p><input class="input-field" id="c-name" placeholder="Your Name (Optional)"><input class="input-field" id="c-phone" type="tel" placeholder="Phone Number (Required)"><textarea class="input-field" id="c-msg" placeholder="Describe your issue..."></textarea><button class="btn-primary" onclick="submitComplaint()">Submit Complaint</button><button class="btn-secondary" onclick="closeSheet()">Cancel</button>`);
     }
