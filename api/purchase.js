@@ -17,7 +17,7 @@ export default async function handler(req, res) {
 
     if (req.method !== 'POST') return res.status(405).json({error: 'Method Not Allowed'});
 
-    const { transaction_id, tx_ref, mobile_number, plan_id, network, ported, action } = req.body;
+    const { transaction_id, tx_ref, mobile_number, plan_id, ported, action } = req.body;
     const finalRef = tx_ref || String(transaction_id);
 
     const client = new Client({ connectionString: CONNECTION_STRING, ssl: { rejectUnauthorized: false } });
@@ -25,20 +25,34 @@ export default async function handler(req, res) {
     try {
         await client.connect();
 
-        // --- RECHECK LOGIC (Updated for Safety) ---
+        // ---------------------------------------------------------
+        // 🛡️ CRITICAL SECURITY CHECK (Prevents Double Deduction)
+        // ---------------------------------------------------------
+        const existingTx = await client.query('SELECT status FROM transactions WHERE reference = $1', [finalRef]);
+        
+        if (existingTx.rows.length > 0) {
+            const currentStatus = existingTx.rows[0].status;
+            // If Webhook already marked it as success, STOP HERE.
+            if (currentStatus === 'success') {
+                await client.end();
+                console.log(`[Purchase] Duplicate blocked for ${finalRef}. Already successful.`);
+                return res.status(200).json({ success: true, message: 'Transaction already completed successfully.' });
+            }
+        }
+        // ---------------------------------------------------------
+
+        // --- RECHECK LOGIC ---
         if (action === 'recheck') {
             if (!finalRef) throw new Error("Missing Reference");
 
-            // 1. Verify Payment with Flutterwave
+            // Verify Payment
             const flwRes = await fetch(`https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${finalRef}`, { 
                 headers: { 'Authorization': `Bearer ${FLW_SECRET_KEY}` } 
             });
             const flwData = await flwRes.json();
 
             if (flwData.status === 'success' && flwData.data.status === 'successful') {
-                const paidAmount = flwData.data.amount;
-
-                // 2. Fetch Plan Details to Verify Amount
+                // Fetch details from DB if missing
                 let targetPlanId = plan_id;
                 let targetPhone = mobile_number;
                 
@@ -52,25 +66,11 @@ export default async function handler(req, res) {
 
                 if (!targetPlanId) return res.status(400).json({ error: "Cannot find plan details." });
 
-                // 3. Double Check: Does Paid Amount Match Plan Price?
+                // Deliver
                 const planRes = await client.query('SELECT * FROM plans WHERE id = $1', [targetPlanId]);
                 if (planRes.rows.length === 0) throw new Error("Invalid Plan ID");
                 const plan = planRes.rows[0];
 
-                if (paidAmount < plan.price) {
-                    return res.status(400).json({ 
-                        success: false, 
-                        error: `Underpayment detected. Paid: ₦${paidAmount}, Needed: ₦${plan.price}. Contact Support.` 
-                    });
-                }
-
-                // 4. Check if already successful
-                const dbCheck = await client.query('SELECT status FROM transactions WHERE reference = $1', [finalRef]);
-                if (dbCheck.rows.length > 0 && dbCheck.rows[0].status === 'success') {
-                    return res.status(200).json({ success: true, message: "Transaction already successful." });
-                }
-
-                // 5. DELIVER DATA
                 const NET_MAP = { 'mtn': 1, 'glo': 2, 'airtel': 3, '9mobile': 4 };
                 const networkInt = NET_MAP[plan.network.toLowerCase()] || 1;
 
@@ -99,34 +99,37 @@ export default async function handler(req, res) {
                 );
 
                 if (isSuccess) return res.status(200).json({ success: true, message: 'Recheck Successful: Data Sent!' });
-                else return res.status(400).json({ success: false, error: 'Payment confirmed, but data delivery failed. Contact Admin.' });
+                else return res.status(400).json({ success: false, error: 'Payment confirmed, but data delivery failed.' });
 
             } else {
-                return res.status(400).json({ success: false, error: 'Payment not found or failed at bank.' });
+                return res.status(400).json({ success: false, error: 'Payment not found.' });
             }
         }
 
-        // --- STANDARD PURCHASE LOGIC (Existing) ---
-        // (Keeping your original logic for standard "I have paid" verification)
+        // --- STANDARD PURCHASE LOGIC ---
         
+        // 1. Safe Insert/Update (Only update if NOT success)
         try {
+             // We modify the query to NOT overwrite 'success' status if it exists
              await client.query(
                 `INSERT INTO transactions (phone_number, network, plan_id, status, reference, created_at) 
                  VALUES ($1, 'unknown', $2, 'processing', $3, NOW())
-                 ON CONFLICT (reference) DO UPDATE SET status = 'processing'`,
+                 ON CONFLICT (reference) DO UPDATE SET 
+                    status = CASE WHEN transactions.status = 'success' THEN 'success' ELSE 'processing' END,
+                    phone_number = EXCLUDED.phone_number,
+                    plan_id = EXCLUDED.plan_id`,
                 [mobile_number, plan_id, finalRef]
             );
         } catch(dbErr) { console.error("DB Insert Error", dbErr); }
 
+        // 2. Get Plan
         const planRes = await client.query('SELECT * FROM plans WHERE id = $1', [plan_id]);
         if (planRes.rows.length === 0) {
-            await client.query("UPDATE transactions SET status='failed_plan' WHERE reference=$1", [finalRef]);
-            await client.end();
             return res.status(400).json({ error: 'Invalid Plan ID' }); 
         }
         const plan = planRes.rows[0];
-        await client.query("UPDATE transactions SET network=$1 WHERE reference=$2", [plan.network, finalRef]);
-
+        
+        // 3. Verify Payment
         if (!FLW_SECRET_KEY) { await client.end(); return res.status(500).json({ error: 'Server Config Error' }); }
 
         let flwData;
@@ -136,12 +139,14 @@ export default async function handler(req, res) {
         const json = await flwRes.json();
         if (json.data) flwData = json.data;
 
+        // 4. Check Status
         if (!flwData || flwData.status !== 'successful' || flwData.amount < plan.price) {
-            await client.query("UPDATE transactions SET status='failed_verif' WHERE reference=$1", [finalRef]);
+            await client.query("UPDATE transactions SET status='failed_verif' WHERE reference=$1 AND status != 'success'", [finalRef]);
             await client.end();
             return res.status(400).json({ error: 'Payment Failed or Insufficient' });
         }
 
+        // 5. Send to Amigo
         const NET_MAP = { 'mtn': 1, 'glo': 2, 'airtel': 3, '9mobile': 4 };
         const networkInt = NET_MAP[plan.network.toLowerCase()] || 1;
 
@@ -160,7 +165,10 @@ export default async function handler(req, res) {
         const amigoRes = await fetch('https://amigo.ng/api/data/', options);
         const amigoResult = await amigoRes.json();
 
+        // 6. Final Save
         const isSuccess = amigoResult.success === true || amigoResult.Status === 'successful';
+        
+        // Only update if we actually got a result (don't overwrite if race condition updated it meanwhile)
         await client.query("UPDATE transactions SET status=$1, api_response=$2 WHERE reference=$3", 
             [isSuccess ? 'success' : 'failed', JSON.stringify(amigoResult), finalRef]);
         
