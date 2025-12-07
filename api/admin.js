@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     await client.connect();
 
     try {
-        const { action, search } = req.query; // Added search
+        const { action, search } = req.query;
 
         if (action === 'check') {
             await client.end();
@@ -30,21 +30,16 @@ export default async function handler(req, res) {
         if (action === 'transactions') {
             let query = 'SELECT * FROM transactions';
             let params = [];
-            
-            // Search Logic
             if(search) {
                 query += ' WHERE reference ILIKE $1 OR phone_number ILIKE $1';
                 params.push(`%${search}%`);
             }
-            
             query += ' ORDER BY created_at DESC LIMIT 50';
-            
             const result = await client.query(query, params);
             await client.end();
             return res.status(200).json(result.rows);
         }
 
-        // ... (Keep existing complaints logic) ...
         if (action === 'complaints') {
             const checkTable = await client.query("SELECT to_regclass('public.complaints')");
             if(!checkTable.rows[0].to_regclass) {
@@ -55,7 +50,6 @@ export default async function handler(req, res) {
             return res.status(200).json(result.rows);
         }
 
-        // ... (Keep existing POST logic for retry, manual, complaints, message) ...
         if (req.method === 'POST') {
             const body = req.body;
             
@@ -73,16 +67,32 @@ export default async function handler(req, res) {
             }
 
             if (body.action === 'retry' || body.action === 'manual') {
-                // ... (Keep existing retry/manual logic exactly as provided before) ...
                 let targetPhone, targetPlanId, targetNetwork, apiPlanId, dbRef;
+                
                 if (body.action === 'retry') {
-                    const txRes = await client.query(`SELECT t.phone_number, t.plan_id, t.reference, t.network, p.plan_id_api FROM transactions t LEFT JOIN plans p ON t.plan_id = p.id WHERE t.id = $1`, [body.id]);
+                    const txRes = await client.query(
+                        `SELECT t.phone_number, t.plan_id, t.reference, t.network, p.plan_id_api 
+                         FROM transactions t 
+                         LEFT JOIN plans p ON t.plan_id = p.id 
+                         WHERE t.id = $1`, 
+                        [body.id]
+                    );
+                    
                     if (txRes.rows.length === 0) throw new Error("Transaction not found");
                     const tx = txRes.rows[0];
-                    targetPhone = tx.phone_number; targetPlanId = tx.plan_id; targetNetwork = tx.network; apiPlanId = tx.plan_id_api; dbRef = tx.reference;
-                    if (!apiPlanId) throw new Error("Plan configuration missing");
+                    targetPhone = tx.phone_number;
+                    targetPlanId = tx.plan_id;
+                    targetNetwork = tx.network;
+                    apiPlanId = tx.plan_id_api;
+                    dbRef = tx.reference;
+
+                    if (!apiPlanId) throw new Error(`Plan configuration missing. Please check '${targetPlanId}' in Manage Plans.`);
+
                 } else {
-                    targetPhone = body.phone; targetPlanId = body.plan_id; targetNetwork = body.network; dbRef = 'MANUAL-' + Date.now();
+                    targetPhone = body.phone;
+                    targetPlanId = body.plan_id;
+                    targetNetwork = body.network;
+                    dbRef = 'MANUAL-' + Date.now();
                     const planRes = await client.query('SELECT plan_id_api FROM plans WHERE id = $1', [body.plan_id]);
                     if (planRes.rows.length === 0) throw new Error("Invalid Plan ID");
                     apiPlanId = planRes.rows[0].plan_id_api;
@@ -90,6 +100,7 @@ export default async function handler(req, res) {
 
                 const NET_MAP = { 'mtn': 1, 'glo': 2, 'airtel': 3, '9mobile': 4 };
                 const networkInt = NET_MAP[targetNetwork.toLowerCase()] || 1;
+
                 const options = {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Token ${AMIGO_API_KEY}`, 'X-API-Key': AMIGO_API_KEY },
@@ -99,6 +110,7 @@ export default async function handler(req, res) {
 
                 const amigoRes = await fetch('https://amigo.ng/api/data/', options);
                 const amigoResult = await amigoRes.json();
+                
                 const isSuccess = (amigoResult.success === true || amigoResult.Status === 'successful');
 
                 if (body.action === 'retry') {
@@ -108,7 +120,15 @@ export default async function handler(req, res) {
                 }
 
                 await client.end();
-                return isSuccess ? res.status(200).json({ success: true }) : res.status(400).json({ success: false, error: amigoResult.message || 'Failed' });
+
+                if (isSuccess) {
+                    return res.status(200).json({ success: true, message: 'Sent Successfully' });
+                } else {
+                    // IMPROVED ERROR REPORTING
+                    // Returns the exact message from Amigo, or the full object if message is missing
+                    const errorDetails = amigoResult.message || amigoResult.error_message || JSON.stringify(amigoResult);
+                    return res.status(400).json({ success: false, error: `Provider: ${errorDetails}` });
+                }
             }
         }
 
