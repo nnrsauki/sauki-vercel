@@ -25,32 +25,34 @@ export default async function handler(req, res) {
         try {
             await client.connect();
 
-            // 3. Check if transaction already fulfilled
-            const check = await client.query('SELECT id FROM transactions WHERE reference = $1', [data.tx_ref]);
+            // 3. Find the EXISTING pending transaction using the reference (tx_ref)
+            // This assumes your website created the record with status 'pending' before the user paid.
+            const result = await client.query('SELECT * FROM transactions WHERE reference = $1', [data.tx_ref]);
             
-            if (check.rows.length === 0) {
-                console.log(`[Webhook] New Order: ${data.tx_ref}`);
+            if (result.rows.length > 0) {
+                const transaction = result.rows[0];
 
-                // 4. ROBUST DATA EXTRACTION
-                const meta = data.meta || data.customer?.meta || {}; // Check multiple locations for meta
-                
-                const planId = meta.plan_id; 
-                const ported = meta.ported === true || meta.ported === "true"; 
-                // Prioritize meta.consumer_id (phone from your app), fallback to FLW customer phone
-                const phone = meta.consumer_id || data.customer?.phone_number;
-
-                if (planId && phone) {
-                    console.log(`[Webhook] Found Plan: ${planId}, Phone: ${phone}`);
+                // 4. Check if we actually need to deliver data (Idempotency)
+                // If status is NOT 'success', we assume it's pending/failed and needs delivery.
+                if (transaction.status !== 'success' && transaction.status !== 'successful') {
                     
-                    // 5. Fetch Plan API ID
-                    const planRes = await client.query('SELECT * FROM plans WHERE id = $1', [planId]);
+                    console.log(`[Webhook] Found Pending Order: ${data.tx_ref}. Processing...`);
+
+                    // 5. Extract data from YOUR DATABASE (No meta needed)
+                    const { plan_id, phone_number, network } = transaction;
+
+                    // 6. Fetch Plan Details to get the api ID
+                    const planRes = await client.query('SELECT * FROM plans WHERE id = $1', [plan_id]);
                     
                     if (planRes.rows.length > 0) {
                         const plan = planRes.rows[0];
                         const NET_MAP = { 'mtn': 1, 'glo': 2, 'airtel': 3, '9mobile': 4 };
-                        const networkInt = NET_MAP[plan.network.toLowerCase()] || 1;
+                        
+                        // Use network from transaction or plan details
+                        const netKey = (network || plan.network || '').toLowerCase();
+                        const networkInt = NET_MAP[netKey] || 1;
 
-                        // 6. Send to Amigo
+                        // 7. Send to Amigo
                         const options = {
                             method: 'POST',
                             headers: { 
@@ -60,9 +62,9 @@ export default async function handler(req, res) {
                             },
                             body: JSON.stringify({ 
                                 network: networkInt, 
-                                mobile_number: phone, 
+                                mobile_number: phone_number, 
                                 plan: plan.plan_id_api, 
-                                Ported_number: ported 
+                                Ported_number: true // Defaulting to true as meta is removed. 
                             })
                         };
                         
@@ -73,24 +75,27 @@ export default async function handler(req, res) {
                         const amigoResult = await amigoRes.json();
                         
                         const isSuccess = (amigoResult.success === true || amigoResult.Status === 'successful');
-                        const status = isSuccess ? 'success' : 'failed';
+                        const newStatus = isSuccess ? 'success' : 'failed';
 
-                        // 7. Save to DB
+                        // 8. UPDATE the existing record instead of inserting a new one
                         await client.query(
-                            `INSERT INTO transactions (phone_number, network, plan_id, status, reference, api_response, created_at) 
-                             VALUES ($1, $2, $3, $4, $5, $6, NOW())
-                             ON CONFLICT (reference) DO NOTHING`,
-                            [phone, plan.network, planId, status, data.tx_ref, JSON.stringify(amigoResult)]
+                            `UPDATE transactions 
+                             SET status = $1, api_response = $2
+                             WHERE reference = $3`,
+                            [newStatus, JSON.stringify(amigoResult), data.tx_ref]
                         );
-                        console.log(`[Webhook] Success: Delivered ${planId} to ${phone}`);
+
+                        console.log(`[Webhook] Success: Updated ${data.tx_ref} to ${newStatus}`);
                     } else {
-                        console.error(`[Webhook] Error: Plan ID ${planId} not found in DB`);
+                        console.error(`[Webhook] Error: Plan ID ${plan_id} not found in DB`);
                     }
                 } else {
-                    console.error(`[Webhook] Error: Missing data. Plan: ${planId}, Phone: ${phone}`);
+                    console.log(`[Webhook] Ignored: ${data.tx_ref} is already successful.`);
                 }
             } else {
-                console.log(`[Webhook] Ignored: ${data.tx_ref} already processed`);
+                console.log(`[Webhook] Error: Transaction ${data.tx_ref} not found in DB.`);
+                // Since meta is removed, we cannot create a new order here. 
+                // We assume the order was created on the frontend.
             }
         } catch (e) {
             console.error("[Webhook] Critical Error:", e);
