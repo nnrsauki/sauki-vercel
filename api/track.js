@@ -17,19 +17,20 @@ export default async function handler(req, res) {
 
     try {
         // Search by Reference OR Phone Number
-        // Limit 1 to show the latest for that phone number or exact ref
+        // LIMIT 3 to show history
         const result = await client.query(
             `SELECT reference, phone_number, plan_id, network, status, created_at 
              FROM transactions 
              WHERE reference = $1 OR phone_number = $1 
-             ORDER BY created_at DESC LIMIT 1`, 
+             ORDER BY created_at DESC LIMIT 3`, 
             [q]
         );
 
         await client.end();
 
         if (result.rows.length > 0) {
-            return res.status(200).json({ found: true, transaction: result.rows[0] });
+            // Return 'transactions' array
+            return res.status(200).json({ found: true, transactions: result.rows });
         } else {
             return res.status(200).json({ found: false });
         }
