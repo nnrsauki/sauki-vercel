@@ -1,6 +1,9 @@
 import fetch from 'node-fetch';
+import pg from 'pg';
+const { Client } = pg;
 
 const FLW_SECRET_KEY = process.env.FLW_SECRET_KEY;
+const CONNECTION_STRING = process.env.POSTGRES_URL;
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({error: 'Method Not Allowed'});
@@ -9,7 +12,27 @@ export default async function handler(req, res) {
 
     if (!FLW_SECRET_KEY) return res.status(500).json({ error: 'Server Config Error' });
 
+    const client = new Client({ connectionString: CONNECTION_STRING, ssl: { rejectUnauthorized: false } });
+
     try {
+        await client.connect();
+
+        // 1. NEW STEP: Save 'Pending' Transaction to DB immediately
+        // This ensures the Webhook can find the plan_id later.
+        try {
+            await client.query(
+                `INSERT INTO transactions (phone_number, network, plan_id, status, reference, created_at) 
+                 VALUES ($1, 'unknown', $2, 'pending', $3, NOW())
+                 ON CONFLICT (reference) DO UPDATE SET status = 'pending', phone_number = $1, plan_id = $2`,
+                [phone_number, plan_id, tx_ref]
+            );
+            console.log(`[Transfer] Saved pending order: ${tx_ref}`);
+        } catch(dbErr) {
+            console.error("DB Save Error in Initiate Transfer:", dbErr);
+            // We continue even if DB fails, though it's risky for the webhook logic
+        }
+
+        // 2. Proceed to call Flutterwave
         const payload = {
             tx_ref: tx_ref,
             amount: amount,
@@ -18,6 +41,7 @@ export default async function handler(req, res) {
             phone_number: phone_number,
             fullname: name,
             is_bank_transfer: true,
+            // We still send meta to FLW just in case, but your Webhook won't use it.
             meta: { plan_id, ported, consumer_id: phone_number }
         };
 
@@ -35,16 +59,11 @@ export default async function handler(req, res) {
         if (json.status === 'success') {
             const auth = json.meta.authorization;
             
-            // LOGIC: Flutterwave sometimes returns account name in different fields depending on the bank
-            // We prioritize note or account_name if available.
-            // Usually, for virtual accounts, the bank name is fixed, but we want the dynamic beneficiary name.
-            
             return res.status(200).json({
                 success: true,
                 account_number: auth.transfer_account,
                 bank_name: auth.transfer_bank,
                 amount: auth.transfer_amount || amount,
-                // Pass the specific note/instruction which usually contains the name for FLW transfers
                 account_name: auth.account_name || "Sauki Data", 
                 note: auth.transfer_note
             });
@@ -53,6 +72,9 @@ export default async function handler(req, res) {
         }
 
     } catch (e) {
+        console.error("Transfer Error:", e);
         return res.status(500).json({ error: e.message });
+    } finally {
+        await client.end();
     }
 }
