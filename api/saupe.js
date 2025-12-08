@@ -6,41 +6,25 @@ const ADMIN_PASS = process.env.ADMIN_PASSWORD;
 const FLUTTERWAVE_SECRET = process.env.FLUTTERWAVE_SECRET_KEY;
 
 export default async function handler(req, res) {
-    // 0. Safety Check: Ensure Env Vars are actually loaded
-    if (!ADMIN_USER || !ADMIN_PASS) {
-        console.error("CRITICAL: Admin credentials missing from Environment Variables");
-        return res.status(500).json({ error: 'Server Config Error: Credentials undefined' });
+    // --- AUTHENTICATION BLOCK (COPIED EXACTLY FROM ADMIN.JS) ---
+    const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
+    const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':');
+
+    // DEBUGGING LOG (Remove this after it works!)
+    // Check your server console/logs to see what is printing here.
+    // console.log("Login Attempt:", login, "Expected:", ADMIN_USER);
+
+    // Strict comparison just like admin.js
+    if (login !== ADMIN_USER || password !== ADMIN_PASS) {
+        return res.status(401).json({ error: 'Unauthorized' });
     }
+    // -----------------------------------------------------------
 
-    // 1. Security Layer: Validate Admin Credentials
-    const authHeader = req.headers.authorization || '';
-    const match = authHeader.match(/Basic (.+)/);
-    
-    if (!match) return res.status(401).json({ error: 'Unauthorized Access: No Header' });
-
-    // Decode and separate
-    const decoded = Buffer.from(match[1], 'base64').toString();
-    const [login, password] = decoded.split(':');
-    
-    // NORMALIZE STRINGS (The Fix)
-    // We .trim() to remove invisible spaces that often cause this error
-    const clientUser = (login || '').trim();
-    const clientPass = (password || '').trim();
-    const serverUser = (ADMIN_USER || '').trim();
-    const serverPass = (ADMIN_PASS || '').trim();
-
-    // Debugging (Check your server logs if this fails)
-    // console.log(`Auth Attempt: Received '${clientUser}' vs Expected '${serverUser}'`);
-
-    if (clientUser !== serverUser || clientPass !== serverPass) {
-        return res.status(401).json({ error: 'Invalid Credentials' });
-    }
-
+    // Check Flutterwave Key
     if (!FLUTTERWAVE_SECRET) {
-        return res.status(500).json({ error: 'Server Config Error: Missing Secret Key' });
+        return res.status(500).json({ error: 'Server Config Error: FLUTTERWAVE_SECRET_KEY is missing' });
     }
 
-    // 2. Action Routing
     const { action } = req.query;
     const FW_BASE = 'https://api.flutterwave.com/v3';
     const HEADERS = {
@@ -61,10 +45,10 @@ export default async function handler(req, res) {
             return res.status(200).json(data);
         }
 
-        return res.status(400).json({ error: 'Unknown Action' });
+        return res.status(400).json({ error: 'Invalid Action' });
 
     } catch (e) {
         console.error("Saupe API Error:", e);
-        return res.status(500).json({ error: 'Upstream Connection Failed' });
+        return res.status(500).json({ error: 'Connection Failed: ' + e.message });
     }
 }
