@@ -22,38 +22,51 @@ export default async function handler(req, res) {
                 const check = await client.query('SELECT id FROM agents WHERE phone_number = $1', [phone]);
                 if (check.rows.length > 0) return res.status(400).json({ error: 'Phone number already registered' });
 
-                // 2. Create Static Virtual Account (Flutterwave)
-                // Using 'is_permanent: true' creates a static account
-                const flwPayload = {
-                    email: "saukidatalinks@gmail.com",
-                    is_permanent: true,
-                    bvn: bvn,
-                    tx_ref: `SAUKI-AGENT-${phone}-${Date.now()}`,
-                    phonenumber: phone,
-                    firstname: name.split(' ')[0],
-                    lastname: name.split(' ')[1] || 'Agent',
-                    narration: `Sauki Agent ${name.split(' ')[0]}`
-                };
-
+                // 2. Create Static Virtual Account
                 const flwRes = await fetch('https://api.flutterwave.com/v3/virtual-account-numbers', {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${FLW_SECRET_KEY}`,
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(flwPayload)
+                    body: JSON.stringify({
+                        email: "saukidatalinks@gmail.com",
+                        is_permanent: true,
+                        bvn: bvn,
+                        tx_ref: `AGT-${phone}-${Date.now()}`,
+                        phonenumber: phone,
+                        firstname: name.split(' ')[0],
+                        lastname: name.split(' ')[1] || 'Agent',
+                        narration: `Sauki Agent ${name.split(' ')[0]}`
+                    })
                 });
                 
                 const flwData = await flwRes.json();
                 
                 if(flwData.status !== 'success') {
                     console.error("FLW Error:", flwData);
-                    return res.status(400).json({ error: flwData.message || 'BVN Validation Failed. Check BVN & Name.' });
+                    return res.status(400).json({ error: flwData.message || 'BVN Verification Failed' });
                 }
 
                 const acc = flwData.data;
 
-                // 3. Save to DB
+                // 3. STRICT NAME MATCHING
+                // We assume the 'note' or 'account_name' from FLW contains the verified name.
+                // We check if the input name is somewhat similar to the bank name.
+                const bankName = (acc.account_name || acc.note || "").toLowerCase();
+                const inputName = name.toLowerCase();
+                
+                // If the bank name doesn't contain at least one part of the input name, reject it.
+                // (e.g. Input: "Musa", Bank: "Musa Yaradua" -> Pass)
+                // (e.g. Input: "John", Bank: "Musa Yaradua" -> Fail)
+                const nameParts = inputName.split(' ');
+                const isMatch = nameParts.some(part => bankName.includes(part));
+
+                if (!isMatch && bankName.length > 5) { // Only enforce if bank returned a valid name
+                     return res.status(400).json({ error: `Name Mismatch. BVN Name is: ${acc.account_name || 'Unknown'}. Please use your real name.` });
+                }
+
+                // 4. Save to DB
                 await client.query(
                     `INSERT INTO agents (phone_number, full_name, pin_hash, wallet_balance, virtual_account_bank, virtual_account_number, virtual_account_name, bvn_hash)
                      VALUES ($1, $2, $3, 0.00, $4, $5, $6, 'STORED')`,
@@ -76,8 +89,7 @@ export default async function handler(req, res) {
             }
         }
     } catch (e) {
-        console.error("Auth Error:", e);
-        return res.status(500).json({ error: "Server Error. Please verify Environment Variables." });
+        return res.status(500).json({ error: e.message });
     } finally {
         await client.end();
     }
