@@ -6,15 +6,33 @@ const ADMIN_PASS = process.env.ADMIN_PASSWORD;
 const FLUTTERWAVE_SECRET = process.env.FLUTTERWAVE_SECRET_KEY;
 
 export default async function handler(req, res) {
+    // 0. Safety Check: Ensure Env Vars are actually loaded
+    if (!ADMIN_USER || !ADMIN_PASS) {
+        console.error("CRITICAL: Admin credentials missing from Environment Variables");
+        return res.status(500).json({ error: 'Server Config Error: Credentials undefined' });
+    }
+
     // 1. Security Layer: Validate Admin Credentials
     const authHeader = req.headers.authorization || '';
     const match = authHeader.match(/Basic (.+)/);
     
-    if (!match) return res.status(401).json({ error: 'Unauthorized Access' });
+    if (!match) return res.status(401).json({ error: 'Unauthorized Access: No Header' });
 
-    const [login, password] = Buffer.from(match[1], 'base64').toString().split(':');
+    // Decode and separate
+    const decoded = Buffer.from(match[1], 'base64').toString();
+    const [login, password] = decoded.split(':');
     
-    if (login !== ADMIN_USER || password !== ADMIN_PASS) {
+    // NORMALIZE STRINGS (The Fix)
+    // We .trim() to remove invisible spaces that often cause this error
+    const clientUser = (login || '').trim();
+    const clientPass = (password || '').trim();
+    const serverUser = (ADMIN_USER || '').trim();
+    const serverPass = (ADMIN_PASS || '').trim();
+
+    // Debugging (Check your server logs if this fails)
+    // console.log(`Auth Attempt: Received '${clientUser}' vs Expected '${serverUser}'`);
+
+    if (clientUser !== serverUser || clientPass !== serverPass) {
         return res.status(401).json({ error: 'Invalid Credentials' });
     }
 
@@ -32,14 +50,12 @@ export default async function handler(req, res) {
 
     try {
         if (action === 'balance') {
-            // Fetch Balance
             const response = await fetch(`${FW_BASE}/balances`, { headers: HEADERS });
             const data = await response.json();
             return res.status(200).json(data);
         }
 
         if (action === 'transactions') {
-            // Fetch Transactions (Last 20)
             const response = await fetch(`${FW_BASE}/transactions?limit=20`, { headers: HEADERS });
             const data = await response.json();
             return res.status(200).json(data);
