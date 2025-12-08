@@ -3,7 +3,7 @@ import fetch from 'node-fetch';
 // ENV Variables
 const ADMIN_USER = process.env.ADMIN_USERNAME;
 const ADMIN_PASS = process.env.ADMIN_PASSWORD;
-const FLUTTERWAVE_SECRET = process.env.FLUTTERWAVE_SECRET_KEY;
+const FLUTTERWAVE_SECRET = process.env.FLW_SECRET_KEY;
 
 export default async function handler(req, res) {
     // --- 1. AUTHENTICATION (Standard) ---
