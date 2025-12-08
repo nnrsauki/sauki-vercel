@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sauki Agent - Reseller Portal</title>
+    <!-- HTML2Canvas for Receipt Generation -->
+    <script src=""></script>
+    <style>
+        :root { --primary: #007AFF; --bg: #f2f2f7; --card-bg: #ffffff; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; padding: 0; color: #333; }
+        
+        .container { max-width: 480px; margin: 0 auto; padding: 20px; min-height: 100vh; display: flex; flex-direction: column; }
+        .card { background: var(--card-bg); border-radius: 20px; padding: 25px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        
+        h2 { margin-top: 0; font-size: 1.5rem; text-align: center; }
+        .form-group { margin-bottom: 15px; }
+        input, select { width: 100%; padding: 16px; border: 1px solid #e1e1e1; border-radius: 12px; font-size: 16px; background: #f9f9f9; outline: none; box-sizing: border-box; transition: 0.2s; }
+        input:focus, select:focus { border-color: var(--primary); background: #fff; }
+        
+        .btn { width: 100%; padding: 18px; border: none; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; transition: 0.2s; }
+        .btn-primary { background: var(--primary); color: white; box-shadow: 0 4px 15px rgba(0,122,255,0.3); }
+        .btn-primary:active { transform: scale(0.98); }
+        .btn-text { background: transparent; color: var(--primary); margin-top: 10px; }
+        .btn-sm { padding: 6px 12px; font-size: 12px; width: auto; border-radius: 6px; cursor: pointer; }
+        
+        /* Wallet Card */
+        .wallet-card { background: linear-gradient(135deg, #007AFF, #005ec4); color: white; text-align: center; position: relative; overflow: hidden; }
+        .balance-label { font-size: 0.85rem; opacity: 0.9; }
+        .balance-amount { font-size: 2.5rem; font-weight: 800; margin: 5px 0 15px 0; }
+        .account-details { background: rgba(255,255,255,0.15); padding: 10px; border-radius: 10px; font-size: 0.9rem; display: inline-block; backdrop-filter: blur(5px); }
+        
+        .nav-tabs { display: flex; background: #e5e5ea; padding: 4px; border-radius: 12px; margin-bottom: 20px; }
+        .nav-item { flex: 1; padding: 10px; text-align: center; font-size: 0.9rem; font-weight: 600; border-radius: 9px; cursor: pointer; color: #888; }
+        .nav-item.active { background: white; color: #000; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        
+        .tx-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #eee; }
+        .status-badge { font-size: 0.75rem; padding: 3px 8px; border-radius: 6px; font-weight: bold; }
+        .alert { background: #fff3cd; color: #856404; padding: 15px; border-radius: 12px; font-size: 0.85rem; line-height: 1.4; margin-bottom: 20px; border-left: 5px solid #ffeeba; }
+        .loader { border: 3px solid #f3f3f3; border-top: 3px solid var(--primary); border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; vertical-align: middle; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* RECEIPT STYLES (Hidden by default) */
+        #receipt-container { 
+            position: fixed; top: -9999px; left: 0; width: 380px; background: #fff; padding: 30px; 
+            box-sizing: border-box; font-family: sans-serif; color: #000; z-index: 1000;
+        }
+        .rec-header { text-align: center; border-bottom: 2px dashed #ddd; padding-bottom: 20px; margin-bottom: 20px; }
+        .rec-logo { width: 60px; height: 60px; margin-bottom: 10px; border-radius: 12px; }
+        .rec-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 0.9rem; }
+        .rec-label { color: #666; }
+        .rec-val { font-weight: bold; text-align: right; }
+        .rec-footer { margin-top: 30px; text-align: center; font-size: 0.75rem; color: #888; border-top: 1px solid #eee; padding-top: 15px; }
+        .gov-logos { display: flex; justify-content: center; gap: 15px; margin-bottom: 10px; opacity: 0.8; }
+        .gov-logos img { height: 25px; object-fit: contain; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- AUTH SECTION -->
+        <div id="auth-screen">
+            <div style="text-align:center; margin-bottom:30px; margin-top:20px;">
+                <img src="logo.png" style="width:60px; border-radius:15px; margin-bottom:10px" onerror="this.style.display='none'">
+                <h1 style="color:var(--primary); margin:0;">Sauki Agent</h1>
+                <p style="color:#888;">Reseller Portal</p>
+            </div>
+
+            <div class="card" id="login-card">
+                <h2>Welcome Back</h2>
+                <div class="form-group"><input type="tel" id="login-phone" placeholder="Phone Number" inputmode="numeric"></div>
+                <div class="form-group"><input type="password" id="login-pin" placeholder="4-Digit PIN" maxlength="4" inputmode="numeric"></div>
+                <button class="btn btn-primary" onclick="handleLogin()">Login to Dashboard</button>
+                <button class="btn btn-text" onclick="toggleAuth('signup')">Create New Agent Account</button>
+            </div>
+
+            <div class="card" id="signup-card" style="display:none">
+                <h2>Register as Agent</h2>
+                <div class="alert">
+                    <strong>Regulatory Notice:</strong> In line with Nigerian requirements, a valid BVN is mandatory. Your BVN is transmitted securely to Sterling Bank/Flutterwave for account creation. Sauki Data does not store your BVN.
+                </div>
+                <div class="form-group"><input type="text" id="reg-name" placeholder="Full Name (As on BVN)"></div>
+                <div class="form-group"><input type="tel" id="reg-phone" placeholder="Phone Number" inputmode="numeric"></div>
+                <div class="form-group"><input type="text" id="reg-bvn" placeholder="BVN (11 Digits)" maxlength="11" inputmode="numeric"></div>
+                <div class="form-group"><input type="password" id="reg-pin" placeholder="Create 4-Digit PIN" maxlength="4" inputmode="numeric"></div>
+                <button class="btn btn-primary" onclick="handleSignup()">Create Account</button>
+                <button class="btn btn-text" onclick="toggleAuth('login')">Already have an account? Login</button>
+            </div>
+        </div>
+
+        <!-- DASHBOARD SECTION -->
+        <div id="dashboard-screen" style="display:none">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
+                <div style="display:flex; align-items:center; gap:10px">
+                    <img src="logo.png" style="width:30px; border-radius:8px" onerror="this.style.display='none'">
+                    <b>Sauki Data</b>
+                </div>
+                <div style="color:red; cursor:pointer; font-size:0.9rem" onclick="logout()">Logout</div>
+            </div>
+
+            <div class="card wallet-card">
+                <div style="display:flex; justify-content:center; align-items:center; gap:10px">
+                    <div class="balance-label">Wallet Balance</div>
+                    <button class="btn-sm" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:white" onclick="refreshAgentData()">↻</button>
+                </div>
+                <div class="balance-amount">₦<span id="wallet-balance">0.00</span></div>
+                <div class="account-details">
+                    <div style="font-size:0.75rem; opacity:0.8; margin-bottom:2px">Dedicated Funding Account</div>
+                    <div style="font-weight:bold"><span id="v-bank">Loading...</span> • <span id="v-acc">...</span></div>
+                    <div style="font-size:0.7rem; margin-top:5px; opacity:0.9">Transfer to this account to fund wallet.</div>
+                </div>
+            </div>
+
+            <div class="nav-tabs">
+                <div class="nav-item active" onclick="switchTab('buy')" id="tab-btn-buy">Buy Data</div>
+                <div class="nav-item" onclick="switchTab('history')" id="tab-btn-history">Transactions</div>
+            </div>
+
+            <!-- BUY TAB -->
+            <div id="view-buy">
+                <div class="card">
+                    <div class="form-group">
+                        <select id="network-select" onchange="loadPlans()">
+                            <option value="">Select Network</option>
+                            <option value="mtn">MTN</option>
+                            <option value="glo">GLO</option>
+                            <option value="airtel">AIRTEL</option>
+                            <option value="9mobile">9MOBILE</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <select id="plan-select"><option value="">Select Plan</option></select>
+                    </div>
+                    <div class="form-group">
+                        <input type="tel" id="beneficiary-phone" placeholder="Beneficiary Phone Number" inputmode="numeric">
+                    </div>
+                    <div class="form-group" style="display:flex; gap:10px; align-items:center; font-size:0.9rem">
+                        <input type="checkbox" id="ported-check" style="width:20px; height:20px; flex:none;">
+                        <label for="ported-check">This is a Ported Number</label>
+                    </div>
+                    <div class="form-group">
+                        <input type="password" id="tx-pin" placeholder="Enter PIN to Confirm" maxlength="4" inputmode="numeric">
+                    </div>
+                    <button class="btn btn-primary" id="buy-btn" onclick="processPurchase()">Purchase Data</button>
+                </div>
+            </div>
+
+            <!-- HISTORY TAB -->
+            <div id="view-history" style="display:none">
+                <div class="card" style="padding:15px; min-height:300px">
+                    <div id="tx-list">Loading...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RECEIPT TEMPLATE (Hidden) -->
+    <div id="receipt-container">
+        <!-- Content injected by JS -->
+    </div>
+
+    <script>
+        // --- AUTH LOGIC ---
+        function toggleAuth(mode) {
+            document.getElementById('login-card').style.display = mode === 'login' ? 'block' : 'none';
+            document.getElementById('signup-card').style.display = mode === 'signup' ? 'block' : 'none';
+        }
+
+        async function handleSignup() {
+            const name = document.getElementById('reg-name').value;
+            const phone = document.getElementById('reg-phone').value;
+            const bvn = document.getElementById('reg-bvn').value;
+            const pin = document.getElementById('reg-pin').value;
+
+            if(!name || !phone || bvn.length !== 11 || pin.length !== 4) return alert("Please fill all details correctly.");
+
+            const btn = document.querySelector('#signup-card button');
+            const oldText = btn.innerText;
+            btn.innerHTML = '<div class="loader"></div> Verifying...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/agent-auth', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ action: 'signup', name, phone, bvn, pin })
+                });
+                const data = await res.json();
+                
+                if(data.success) {
+                    alert("Account Created Successfully! Please Login.");
+                    toggleAuth('login');
+                } else {
+                    alert(data.error || "Registration Failed. Ensure BVN matches Name.");
+                }
+            } catch(e) { alert("Network Error"); }
+            finally { btn.innerText = oldText; btn.disabled = false; }
+        }
+
+        async function handleLogin() {
+            const phone = document.getElementById('login-phone').value;
+            const pin = document.getElementById('login-pin').value;
+            
+            if(!phone || !pin) return alert("Enter Phone and PIN");
+
+            const btn = document.querySelector('#login-card button');
+            btn.innerText = 'Logging in...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/agent-auth', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ action: 'login', phone, pin })
+                });
+                const data = await res.json();
+
+                if(data.success) {
+                    localStorage.setItem('sauki_agent', JSON.stringify(data.agent));
+                    initDashboard(data.agent);
+                } else {
+                    alert(data.error || "Invalid Credentials");
+                }
+            } catch(e) { alert("Network Error"); }
+            finally { btn.innerText = 'Login to Dashboard'; btn.disabled = false; }
+        }
+
+        function logout() {
+            localStorage.removeItem('sauki_agent');
+            window.location.reload();
+        }
+
+        // --- DASHBOARD LOGIC ---
+        let currentAgent = null;
+        let agentTransactions = [];
+
+        function initDashboard(agent) {
+            currentAgent = agent;
+            document.getElementById('auth-screen').style.display = 'none';
+            document.getElementById('dashboard-screen').style.display = 'block';
+            
+            // document.getElementById('user-name').innerText = agent.full_name.split(' ')[0];
+            updateBalanceUI();
+            loadHistory();
+        }
+
+        function updateBalanceUI() {
+            document.getElementById('wallet-balance').innerText = parseFloat(currentAgent.wallet_balance).toLocaleString();
+            document.getElementById('v-bank').innerText = currentAgent.virtual_account_bank;
+            document.getElementById('v-acc').innerText = currentAgent.virtual_account_number;
+        }
+
+        async function refreshAgentData() {
+            try {
+                const res = await fetch(`/api/agent-data?phone=${currentAgent.phone_number}`);
+                const data = await res.json();
+                if(data.agent) {
+                    currentAgent = data.agent;
+                    localStorage.setItem('sauki_agent', JSON.stringify(currentAgent));
+                    updateBalanceUI();
+                    if(data.transactions) {
+                        agentTransactions = data.transactions;
+                        renderHistory(data.transactions);
+                    }
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        // --- DATA PURCHASE ---
+        async function loadPlans() {
+            const net = document.getElementById('network-select').value;
+            const planSel = document.getElementById('plan-select');
+            planSel.innerHTML = '<option value="">Loading...</option>';
+            
+            if(!net) { planSel.innerHTML = '<option value="">Select Plan</option>'; return; }
+
+            try {
+                // CRITICAL: Fetches Agent Plans explicitly
+                const res = await fetch(`/api/agent-plans?network=${net}`);
+                const plans = await res.json();
+                planSel.innerHTML = '<option value="">Select Plan</option>' + 
+                    plans.map(p => `<option value="${p.id}">${p.name} - ₦${p.price}</option>`).join('');
+            } catch(e) { planSel.innerHTML = '<option value="">Error Loading Plans</option>'; }
+        }
+
+        async function processPurchase() {
+            const planId = document.getElementById('plan-select').value;
+            const target = document.getElementById('beneficiary-phone').value;
+            const pin = document.getElementById('tx-pin').value;
+            const ported = document.getElementById('ported-check').checked;
+
+            if(!planId || !target || !pin) return alert("Please fill all fields");
+
+            if(!confirm(`Send Data to ${target}?`)) return;
+
+            const btn = document.getElementById('buy-btn');
+            btn.innerHTML = '<div class="loader"></div> Processing...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/agent-purchase', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        agent_phone: currentAgent.phone_number,
+                        pin: pin,
+                        plan_id: planId,
+                        target_phone: target,
+                        ported: ported
+                    })
+                });
+                const data = await res.json();
+
+                if(data.success) {
+                    alert("Transaction Successful!");
+                    refreshAgentData();
+                    document.getElementById('tx-pin').value = '';
+                    switchTab('history');
+                } else {
+                    alert("Failed: " + data.error);
+                }
+            } catch(e) { alert("Error: " + e.message); }
+            finally { btn.innerText = 'Purchase Data'; btn.disabled = false; }
+        }
+
+        // --- HISTORY & TABS ---
+        function switchTab(tab) {
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.getElementById(`tab-btn-${tab}`).classList.add('active');
+            
+            document.getElementById('view-buy').style.display = tab === 'buy' ? 'block' : 'none';
+            document.getElementById('view-history').style.display = tab === 'history' ? 'block' : 'none';
+
+            if(tab === 'history') refreshAgentData();
+        }
+
+        function renderHistory(txs) {
+            const list = document.getElementById('tx-list');
+            if(!txs || txs.length === 0) { list.innerHTML = '<p style="text-align:center;color:#999">No transactions yet.</p>'; return; }
+            
+            list.innerHTML = txs.map(t => {
+                const isSuccess = t.status === 'success';
+                const color = isSuccess ? '#28a745' : '#dc3545';
+                const icon = isSuccess ? '✔' : '✖';
+                
+                return `
+                <div class="tx-item">
+                    <div style="display:flex; align-items:center">
+                        <div style="width:30px; height:30px; border-radius:50%; background:${color}20; color:${color}; display:flex; align-items:center; justify-content:center; margin-right:10px">${icon}</div>
+                        <div>
+                            <div style="font-weight:600">${t.plan_id || 'Data'}</div>
+                            <div style="font-size:0.75rem; color:#888">${new Date(t.created_at).toLocaleString()}</div>
+                        </div>
+                    </div>
+                    <div style="text-align:right">
+                        <div style="font-weight:bold">₦${t.amount}</div>
+                        ${isSuccess ? 
+                            `<button class="btn-sm" style="background:${color}; color:white; border:none; margin-top:4px" onclick="generateReceipt('${t.reference}')">Receipt</button>` 
+                            : `<div style="font-size:0.7rem; color:${color}">Failed</div>`
+                        }
+                    </div>
+                </div>`;
+            }).join('');
+        }
+        
+        async function loadHistory() { refreshAgentData(); }
+
+        // --- RECEIPT GENERATION ---
+        function generateReceipt(ref) {
+            const tx = agentTransactions.find(t => t.reference === ref);
+            if(!tx) return alert("Transaction details not found. Please refresh.");
+
+            // Determine Network Logo
+            let netLogo = 'logo.png'; // Fallback
+            const netName = (tx.network || '').toLowerCase();
+            if(netName.includes('mtn')) netLogo = 'mtn.png';
+            if(netName.includes('airtel')) netLogo = 'airtel.png';
+            if(netName.includes('glo')) netLogo = 'glo.png';
+            if(netName.includes('9mobile')) netLogo = '9mobile.png';
+
+            const html = `
+                <div class="rec-header">
+                    <img src="logo.png" class="rec-logo" onerror="this.style.display='none'">
+                    <h2 style="margin:0; color:#007AFF">SAUKI DATA</h2>
+                    <p style="margin:5px 0 0 0; color:#888; font-size:0.8rem">Transaction Receipt</p>
+                </div>
+                
+                <div style="text-align:center; margin-bottom:20px">
+                    <div style="font-size:2rem; font-weight:800">₦${tx.amount}</div>
+                    <div style="color:#28a745; font-weight:bold; font-size:0.9rem">SUCCESSFUL</div>
+                </div>
+
+                <div class="rec-row"><span class="rec-label">Date & Time</span><span class="rec-val">${new Date(tx.created_at).toLocaleString()}</span></div>
+                <div class="rec-row"><span class="rec-label">Reference</span><span class="rec-val" style="font-family:monospace">${tx.reference}</span></div>
+                <div class="rec-row"><span class="rec-label">Beneficiary</span><span class="rec-val">${tx.phone_number}</span></div>
+                <div class="rec-row">
+                    <span class="rec-label">Network</span>
+                    <span class="rec-val" style="display:flex; align-items:center; gap:5px; justify-content:flex-end">
+                        <img src="${netLogo}" style="height:15px"> ${tx.network || 'Mobile Data'}
+                    </span>
+                </div>
+                <div class="rec-row"><span class="rec-label">Plan</span><span class="rec-val">${tx.plan_id}</span></div>
+
+                <div class="rec-footer">
+                    <div class="gov-logos">
+                        <img src="coat.png" alt="Nigeria">
+                        <img src="smedan.png" alt="SMEDAN">
+                    </div>
+                    <div>Government Certified by SMEDAN</div>
+                    <div style="margin-top:5px; font-weight:bold">saukidatalinks@gmail.com | 08164135836</div>
+                    <div style="margin-top:5px">Thanks for your patronage.</div>
+                </div>
+            `;
+
+            const container = document.getElementById('receipt-container');
+            container.innerHTML = html;
+
+            // Generate Image
+            // We use a slight delay to ensure images load in the hidden div
+            setTimeout(() => {
+                html2canvas(container, { scale: 2 }).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = `Sauki-Receipt-${ref}.png`;
+                    link.href = canvas.toDataURL("image/png");
+                    link.click();
+                }).catch(err => alert("Error generating receipt image."));
+            }, 100);
+        }
+
+        // Auto Login Check
+        const saved = localStorage.getItem('sauki_agent');
+        if(saved) initDashboard(JSON.parse(saved));
+
+    </script>
+</body>
+</html>
