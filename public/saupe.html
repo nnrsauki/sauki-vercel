@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Saupe Finance | Financial Command</title>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-dark: #000000;
+            --glass-panel: rgba(28, 28, 30, 0.70);
+            --glass-card: rgba(40, 40, 42, 0.60);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-highlight: rgba(255, 255, 255, 0.05);
+            
+            /* Financial Accents */
+            --accent-gold: #FF9F0A;
+            --accent-money: #30D158;
+            --accent-debit: #FF453A;
+            --accent-rave: #FB9129; /* Flutterwave Orange */
+            
+            --text-primary: #FFFFFF;
+            --text-secondary: #EBEBF599;
+            --text-tertiary: #EBEBF54D;
+            
+            --radius-xl: 32px;
+            --radius-lg: 24px;
+            --radius-md: 16px;
+            --radius-sm: 10px;
+            
+            --font-main: 'Inter', -apple-system, sans-serif;
+            --shadow-deep: 0 20px 80px rgba(0,0,0,0.6);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-dark);
+            /* Rich amber/orange glow for finance vibe */
+            background-image: 
+                radial-gradient(circle at 80% 10%, rgba(251, 145, 41, 0.12) 0%, transparent 40%),
+                radial-gradient(circle at 10% 90%, rgba(255, 159, 10, 0.08) 0%, transparent 40%);
+            background-attachment: fixed;
+            color: var(--text-primary);
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* --- UTILITIES --- */
+        .glass {
+            background: var(--glass-panel);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow-deep);
+        }
+        
+        .hidden { display: none !important; opacity: 0; pointer-events: none; }
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .w-full { width: 100%; }
+        .text-right { text-align: right; }
+
+        /* --- CONTAINER --- */
+        .app-shell {
+            width: 100%;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            animation: appIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes appIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- HEADER --- */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+        }
+
+        .brand-pill {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255,255,255,0.05);
+            padding: 8px 16px 8px 8px;
+            border-radius: 50px;
+            border: 1px solid var(--glass-border);
+        }
+        .brand-icon {
+            width: 32px; height: 32px;
+            background: linear-gradient(135deg, var(--accent-rave), #FF5E3A);
+            border-radius: 50%;
+            display: grid; place-items: center;
+            box-shadow: 0 4px 12px rgba(251, 145, 41, 0.3);
+        }
+
+        /* --- BALANCE CARDS --- */
+        .balance-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .balance-card {
+            background: var(--glass-card);
+            border: 1px solid var(--glass-border);
+            padding: 24px;
+            border-radius: var(--radius-lg);
+            position: relative;
+            overflow: hidden;
+            transition: 0.3s;
+        }
+        .balance-card:hover { transform: translateY(-2px); background: rgba(255,255,255,0.08); }
+        
+        .b-label { font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+        .b-amount { font-size: 2rem; font-weight: 700; letter-spacing: -1px; display: block; }
+        .b-currency { font-size: 1rem; color: var(--text-secondary); font-weight: 500; margin-left: 4px; }
+        
+        .b-shiny {
+            position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        /* --- TRANSACTIONS --- */
+        .tx-section {
+            background: var(--glass-panel);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-xl);
+            padding: 24px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tx-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .tx-list {
+            display: flex; flex-direction: column; gap: 8px;
+            overflow-y: auto;
+            max-height: 60vh;
+        }
+
+        .tx-item {
+            display: grid;
+            grid-template-columns: 48px 1fr auto;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            border-radius: var(--radius-md);
+            transition: 0.2s;
+            cursor: default;
+        }
+        .tx-item:hover { background: var(--glass-highlight); }
+
+        .tx-icon {
+            width: 48px; height: 48px;
+            border-radius: 50%;
+            display: grid; place-items: center;
+            font-size: 1.2rem;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--glass-border);
+        }
+        .tx-icon.in { color: var(--accent-money); background: rgba(48, 209, 88, 0.1); }
+        .tx-icon.out { color: var(--accent-debit); background: rgba(255, 69, 58, 0.1); }
+
+        .tx-info h4 { margin: 0 0 4px 0; font-weight: 500; font-size: 0.95rem; }
+        .tx-info p { margin: 0; font-size: 0.8rem; color: var(--text-secondary); font-family: monospace; }
+        
+        .tx-amount { font-weight: 600; font-size: 1rem; }
+        .tx-amount.in { color: var(--accent-money); }
+        .tx-amount.out { color: var(--text-primary); }
+
+        .status-dot {
+            width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px;
+        }
+        .dot-success { background: var(--accent-money); box-shadow: 0 0 8px rgba(48,209,88,0.4); }
+        .dot-pending { background: var(--accent-gold); }
+        .dot-failed { background: var(--accent-debit); }
+
+        /* --- BUTTONS & INPUTS --- */
+        .btn {
+            border: none; background: rgba(255,255,255,0.1); color: white;
+            padding: 10px 16px; border-radius: var(--radius-sm);
+            cursor: pointer; font-weight: 600; font-size: 0.9rem;
+            display: flex; align-items: center; gap: 8px; transition: 0.2s;
+        }
+        .btn:hover { background: rgba(255,255,255,0.15); }
+        .btn-primary { background: var(--text-primary); color: black; }
+        .btn-primary:hover { background: #e1e1e1; }
+        .btn-icon { padding: 10px; border-radius: 50%; }
+
+        /* --- LOGIN MODAL (Reused Style) --- */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(15px); z-index: 100;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: 0.3s;
+        }
+        .modal-overlay.open { opacity: 1; pointer-events: all; }
+        .modal-box {
+            background: #1c1c1e; width: 100%; max-width: 380px;
+            border-radius: var(--radius-lg); padding: 40px;
+            border: 1px solid var(--glass-border);
+            text-align: center;
+        }
+        input {
+            width: 100%; background: #2c2c2e; border: 1px solid #3a3a3c;
+            color: white; padding: 14px; border-radius: 12px; margin-bottom: 12px;
+            font-size: 1rem; outline: none; text-align: center;
+        }
+        input:focus { border-color: var(--accent-rave); }
+
+        /* --- SKELETON LOADING --- */
+        .skeleton {
+            background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%);
+            background-size: 200% 100%; animation: shimmer 1.5s infinite;
+            border-radius: 6px; color: transparent !important;
+        }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        @media(max-width: 600px) {
+            .app-shell { padding: 15px; }
+            .balance-grid { grid-template-columns: 1fr; }
+            .tx-item { padding: 12px; gap: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Login Modal -->
+    <div class="modal-overlay open" id="login-modal">
+        <div class="modal-box">
+            <div class="brand-icon" style="margin: 0 auto 20px; width: 50px; height: 50px;">
+                <i data-lucide="lock" color="white"></i>
+            </div>
+            <h2 style="margin: 0 0 10px 0;">Saupe Access</h2>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 30px;">
+                Enter Admin Credentials to decrypt financial stream.
+            </p>
+            <input type="text" id="u-in" placeholder="Identity">
+            <input type="password" id="p-in" placeholder="Passkey">
+            <button class="btn btn-primary w-full" style="justify-content: center; margin-top: 10px;" onclick="authenticate()">
+                Authenticate
+            </button>
+        </div>
+    </div>
+
+    <div class="app-shell hidden" id="app-shell">
+        <!-- Header -->
+        <header class="top-bar">
+            <div class="brand-pill">
+                <div class="brand-icon"><i data-lucide="gem" color="white" size="18"></i></div>
+                <span style="font-weight: 600; font-size: 0.95rem;">Saupe Finance</span>
+            </div>
+            <div class="flex" style="gap: 10px;">
+                <button class="btn btn-icon" onclick="togglePrivacy()" id="eye-btn">
+                    <i data-lucide="eye"></i>
+                </button>
+                <button class="btn btn-icon" onclick="refreshData()">
+                    <i data-lucide="refresh-cw"></i>
+                </button>
+                <button class="btn btn-icon" onclick="logout()" style="color: var(--accent-debit);">
+                    <i data-lucide="log-out"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Balance Cards -->
+        <section class="balance-grid">
+            <!-- Available -->
+            <div class="balance-card">
+                <div class="b-shiny"></div>
+                <div class="b-label"><i data-lucide="wallet" size="14"></i> Available Balance</div>
+                <span class="b-amount skeleton-text" id="bal-available">---</span>
+            </div>
+            <!-- Ledger -->
+            <div class="balance-card">
+                <div class="b-shiny"></div>
+                <div class="b-label"><i data-lucide="landmark" size="14"></i> Ledger Balance</div>
+                <span class="b-amount skeleton-text" id="bal-ledger" style="color: var(--text-secondary); font-size: 1.5rem;">---</span>
+            </div>
+        </section>
+
+        <!-- Transactions -->
+        <section class="tx-section">
+            <div class="tx-header">
+                <div>
+                    <h3 style="margin: 0; font-size: 1.2rem;">Live Feed</h3>
+                    <span style="font-size: 0.8rem; color: var(--text-secondary);">Real-time Flutterwave stream</span>
+                </div>
+                <div style="font-size: 0.8rem; background: rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 12px;">
+                    History
+                </div>
+            </div>
+            
+            <div class="tx-list" id="tx-feed">
+                <!-- Items injected here -->
+                <div style="text-align: center; padding: 40px; color: var(--text-tertiary);">
+                    Waiting for stream...
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        let authCreds = '';
+        let isPrivacyMode = false;
+        let cachedData = null;
+
+        // --- AUTH & INIT ---
+        async function authenticate() {
+            const u = document.getElementById('u-in').value;
+            const p = document.getElementById('p-in').value;
+            if(!u || !p) return;
+
+            const creds = 'Basic ' + btoa(u + ':' + p);
+            
+            // Test connection with auth
+            const btn = document.querySelector('#login-modal button');
+            btn.innerText = "Verifying...";
+            
+            try {
+                const res = await fetch('/api/saupe?action=balance', { headers: { 'Authorization': creds } });
+                if(res.ok) {
+                    authCreds = creds;
+                    document.getElementById('login-modal').classList.remove('open');
+                    document.getElementById('app-shell').classList.remove('hidden');
+                    loadDashboard();
+                } else {
+                    alert("Access Denied: Invalid Credentials");
+                    btn.innerText = "Authenticate";
+                }
+            } catch(e) {
+                alert("Connection Error");
+                btn.innerText = "Authenticate";
+            }
+        }
+
+        function logout() {
+            authCreds = '';
+            location.reload();
+        }
+
+        // --- DATA LOADING ---
+        async function loadDashboard() {
+            setLoading(true);
+            try {
+                // 1. Get Balance
+                const balRes = await fetch('/api/saupe?action=balance', { headers: { 'Authorization': authCreds } });
+                const balData = await balRes.json();
+                
+                // 2. Get Transactions
+                const txRes = await fetch('/api/saupe?action=transactions', { headers: { 'Authorization': authCreds } });
+                const txData = await txRes.json();
+
+                if(balData.success && txData.success) {
+                    cachedData = { balance: balData.data, tx: txData.data };
+                    render();
+                } else {
+                    console.error("API Error", balData, txData);
+                }
+            } catch(e) { console.error(e); }
+            setLoading(false);
+        }
+
+        function refreshData() {
+            loadDashboard();
+        }
+
+        // --- RENDERING ---
+        function render() {
+            if(!cachedData) return;
+
+            // Render Balances
+            const mainBal = cachedData.balance.find(b => b.currency === 'NGN') || cachedData.balance[0];
+            const currency = mainBal.currency;
+            
+            const availableEl = document.getElementById('bal-available');
+            const ledgerEl = document.getElementById('bal-ledger');
+
+            if (isPrivacyMode) {
+                availableEl.innerHTML = '****';
+                ledgerEl.innerHTML = '****';
+            } else {
+                availableEl.innerHTML = formatMoney(mainBal.available_balance, currency);
+                ledgerEl.innerHTML = formatMoney(mainBal.ledger_balance, currency);
+            }
+
+            // Render Transactions
+            const list = document.getElementById('tx-feed');
+            list.innerHTML = cachedData.tx.map(tx => {
+                const isCredit = tx.type === 'credit' || tx.amount > 0 && tx.type !== 'debit'; // FW logic varies sometimes
+                const icon = isCredit ? 'arrow-down-left' : 'arrow-up-right';
+                const styleClass = isCredit ? 'in' : 'out';
+                const sign = isCredit ? '+' : '-';
+                const date = new Date(tx.created_at).toLocaleString();
+                
+                const statusColor = tx.status === 'successful' ? 'dot-success' : (tx.status === 'failed' ? 'dot-failed' : 'dot-pending');
+
+                return `
+                <div class="tx-item">
+                    <div class="tx-icon ${styleClass}">
+                        <i data-lucide="${icon}"></i>
+                    </div>
+                    <div class="tx-info">
+                        <h4>${tx.narration || 'Transaction'}</h4>
+                        <p><span class="status-dot ${statusColor}"></span> ${date}</p>
+                    </div>
+                    <div class="text-right">
+                        <div class="tx-amount ${styleClass}">
+                            ${isPrivacyMode ? '****' : (sign + formatMoney(Math.abs(tx.amount), tx.currency))}
+                        </div>
+                        <div style="font-size:0.75rem; color:var(--text-tertiary); margin-top:4px;">${tx.status}</div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+            
+            lucide.createIcons();
+        }
+
+        // --- UTILS ---
+        function formatMoney(amount, currency) {
+            return new Intl.NumberFormat('en-NG', { style: 'currency', currency: currency }).format(amount);
+        }
+
+        function togglePrivacy() {
+            isPrivacyMode = !isPrivacyMode;
+            const btn = document.getElementById('eye-btn');
+            btn.innerHTML = isPrivacyMode ? '<i data-lucide="eye-off"></i>' : '<i data-lucide="eye"></i>';
+            lucide.createIcons();
+            render();
+        }
+
+        function setLoading(isLoading) {
+            if(isLoading) {
+                document.getElementById('bal-available').classList.add('skeleton');
+                document.getElementById('bal-ledger').classList.add('skeleton');
+            } else {
+                document.getElementById('bal-available').classList.remove('skeleton');
+                document.getElementById('bal-ledger').classList.remove('skeleton');
+            }
+        }
+    </script>
+</body>
+</html>
+
+                  
