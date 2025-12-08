@@ -1,452 +1,816 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sauki Command Center</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg-color: #000000;
-      --sidebar-bg: #1c1c1e;
-      --card-bg: #1c1c1e;
-      --border-color: #38383a;
-      --primary: #0A84FF;
-      --success: #30D158;
-      --danger: #FF453A;
-      --warning: #FF9F0A;
-      --text-main: #FFFFFF;
-      --text-sec: #8E8E93;
-      --radius: 12px;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sauki Admin Pro | iOS 26 Concept</title>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    body { font-family: 'Inter', sans-serif; background: var(--bg-color); color: var(--text-main); margin: 0; display: flex; height: 100vh; overflow: hidden; }
-    
-    /* Login */
-    #login-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(20px); }
-    .login-box { background: #1c1c1e; padding: 40px; border-radius: 24px; width: 350px; text-align: center; border: 1px solid var(--border-color); }
-    .login-input { background: #2c2c2e; border: none; padding: 16px; width: 100%; color: white; border-radius: 12px; margin-bottom: 12px; font-size: 16px; outline: none; }
-    
-    /* Sidebar */
-    .sidebar { width: 250px; background: var(--sidebar-bg); border-right: 1px solid var(--border-color); padding: 20px; display: flex; flex-direction: column; gap: 5px; }
-    .nav-btn { padding: 12px 16px; border-radius: 8px; color: var(--text-sec); cursor: pointer; transition: 0.2s; font-weight: 500; display: flex; align-items: center; gap: 10px; font-size: 14px; }
-    .nav-btn:hover { background: rgba(255,255,255,0.1); color: white; }
-    .nav-btn.active { background: var(--primary); color: white; }
-    
-    .main-content { flex: 1; padding: 40px; overflow-y: auto; }
-    
-    /* Cards & Tables */
-    .card { background: var(--card-bg); border-radius: var(--radius); padding: 20px; border: 1px solid var(--border-color); margin-bottom: 20px; }
-    h1 { font-size: 24px; font-weight: 700; margin: 0 0 20px 0; }
-    
-    table { width: 100%; border-collapse: collapse; }
-    th { text-align: left; padding: 12px; color: var(--text-sec); font-size: 12px; text-transform: uppercase; border-bottom: 1px solid var(--border-color); }
-    td { padding: 14px 12px; border-bottom: 1px solid var(--border-color); font-size: 14px; }
-    tr:last-child td { border-bottom: none; }
-    
-    .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
-    .badge-agent { background: rgba(10, 132, 255, 0.2); color: var(--primary); }
-    .badge-web { background: rgba(255, 255, 255, 0.1); color: #fff; }
-    .badge-manual { background: rgba(255, 159, 10, 0.2); color: var(--warning); }
-    .badge-success { color: var(--success); }
-    
-    .btn { padding: 8px 16px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; font-size: 13px; transition:0.2s; }
-    .btn-primary { background: var(--primary); color: white; }
-    .btn-success { background: var(--success); color: white; }
-    .btn-danger { background: rgba(255, 69, 58, 0.2); color: var(--danger); }
-    .btn-glass { background: rgba(255,255,255,0.1); color: white; border: 1px solid var(--border-color); }
-    .btn:active { transform:scale(0.96); }
+    <style>
+        :root {
+            --bg-dark: #000000;
+            --glass-panel: rgba(28, 28, 30, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.12);
+            --glass-highlight: rgba(255, 255, 255, 0.05);
+            --accent-primary: #0A84FF;
+            --accent-success: #30D158;
+            --accent-danger: #FF453A;
+            --accent-warning: #FF9F0A;
+            --text-primary: #FFFFFF;
+            --text-secondary: #EBEBF599;
+            --text-tertiary: #EBEBF54D;
+            --radius-lg: 24px;
+            --radius-md: 16px;
+            --radius-sm: 10px;
+            --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --shadow-subtle: 0 10px 40px rgba(0,0,0,0.5);
+        }
 
-    /* Stats */
-    .stats-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 30px; }
-    .stat-card { background: linear-gradient(180deg, #2c2c2e 0%, #1c1c1e 100%); padding: 24px; border-radius: 16px; border: 1px solid var(--border-color); }
-    .stat-val { font-size: 32px; font-weight: 700; margin-top: 5px; color: white; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(10, 132, 255, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(48, 209, 88, 0.1) 0%, transparent 40%);
+            background-attachment: fixed;
+            color: var(--text-primary);
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
 
-    /* Inputs */
-    .input-glass { background: #000; border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; color: white; width: 100%; box-sizing: border-box; margin-bottom: 15px; }
-    textarea.input-glass { resize: vertical; min-height: 100px; font-family: inherit; }
-    label { font-size: 12px; color: var(--text-sec); display: block; margin-bottom: 5px; }
+        /* --- UTILITIES --- */
+        .glass {
+            background: var(--glass-panel);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow-subtle);
+        }
+        
+        .hidden { display: none !important; opacity: 0; pointer-events: none; }
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .gap-2 { gap: 0.5rem; }
+        .gap-4 { gap: 1rem; }
+        .w-full { width: 100%; }
 
-    /* Modals */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 200; display: none; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
-    .modal-box { background: #1c1c1e; padding: 30px; border-radius: 20px; border: 1px solid var(--border-color); width: 100%; max-width: 500px; }
-  </style>
+        /* --- LAYOUT --- */
+        .app-container {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            width: 95vw;
+            height: 92vh;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            position: relative;
+            animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--glass-border);
+            z-index: 10;
+        }
+
+        .brand {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 40px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            letter-spacing: -0.02em;
+        }
+
+        .brand-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--accent-primary), #5E5CE6);
+            border-radius: 10px;
+            display: grid;
+            place-items: center;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 16px;
+            color: var(--text-secondary);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            font-size: 0.95rem;
+            font-weight: 500;
+            margin-bottom: 4px;
+            background: transparent;
+            border: none;
+            width: 100%;
+            text-align: left;
+        }
+
+        .nav-item:hover {
+            background: var(--glass-highlight);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: rgba(10, 132, 255, 0.15);
+            color: var(--accent-primary);
+        }
+
+        .nav-item i { width: 20px; height: 20px; }
+
+        /* --- MAIN CONTENT --- */
+        .main-content {
+            padding: 40px;
+            overflow-y: auto;
+            position: relative;
+        }
+        
+        /* Scrollbar styling */
+        .main-content::-webkit-scrollbar { width: 6px; }
+        .main-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+
+        .header {
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        h1 { margin: 0; font-size: 2rem; font-weight: 700; letter-spacing: -0.03em; }
+        .subtitle { color: var(--text-secondary); font-size: 0.9rem; margin-top: 5px; }
+
+        /* --- CARDS & FORMS --- */
+        .card {
+            border-radius: var(--radius-md);
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            padding: 14px 16px;
+            border-radius: var(--radius-sm);
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: 0.2s;
+            outline: none;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.2);
+        }
+
+        /* --- BUTTONS --- */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 20px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+        
+        .btn:active { transform: scale(0.96); }
+
+        .btn-primary { background: var(--accent-primary); color: white; box-shadow: 0 4px 12px rgba(10, 132, 255, 0.3); }
+        .btn-primary:hover { background: #0071e3; }
+
+        .btn-secondary { background: rgba(255, 255, 255, 0.1); color: white; }
+        .btn-secondary:hover { background: rgba(255, 255, 255, 0.15); }
+
+        .btn-danger { background: rgba(255, 69, 58, 0.15); color: var(--accent-danger); }
+        .btn-danger:hover { background: rgba(255, 69, 58, 0.25); }
+
+        .btn-icon { width: 32px; height: 32px; padding: 0; border-radius: 8px; }
+
+        /* --- TABLES --- */
+        .table-container {
+            overflow-x: auto;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--glass-border);
+        }
+
+        table { width: 100%; border-collapse: collapse; }
+        
+        th {
+            text-align: left;
+            padding: 16px 20px;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            font-weight: 600;
+            background: rgba(255,255,255,0.02);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        td {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--glass-border);
+            font-size: 0.9rem;
+            color: var(--text-primary);
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: var(--glass-highlight); }
+
+        .badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            display: inline-block;
+        }
+        .badge-success { background: rgba(48, 209, 88, 0.15); color: var(--accent-success); }
+        .badge-failed { background: rgba(255, 69, 58, 0.15); color: var(--accent-danger); }
+        .badge-net { background: rgba(255, 255, 255, 0.1); color: var(--text-secondary); border: 1px solid var(--glass-border); }
+
+        /* --- MODALS --- */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(8px); z-index: 100;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: 0.3s;
+        }
+        .modal-overlay.open { opacity: 1; pointer-events: all; }
+        
+        .modal-box {
+            background: #1c1c1e; width: 100%; max-width: 420px;
+            border-radius: var(--radius-lg); padding: 30px;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+            transform: scale(0.9); transition: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .modal-overlay.open .modal-box { transform: scale(1); }
+
+        /* --- TOAST --- */
+        .toast-container {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            z-index: 200; display: flex; flex-direction: column; gap: 10px;
+        }
+        .toast {
+            padding: 12px 20px; border-radius: 50px; background: rgba(30,30,30,0.9);
+            border: 1px solid var(--glass-border); color: white; font-size: 0.9rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            display: flex; align-items: center; gap: 10px;
+            animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes slideDown { from { opacity:0; transform: translateY(-20px); } to { opacity:1; transform: translateY(0); } }
+
+        /* --- MOBILE --- */
+        @media (max-width: 900px) {
+            .app-container { grid-template-columns: 1fr; width: 100%; height: 100%; border-radius: 0; }
+            .sidebar { display: none; position: fixed; inset: 0; background: #000; z-index: 50; padding-top: 80px; }
+            .sidebar.active { display: flex; }
+            .mobile-nav { display: flex; justify-content: space-between; padding: 20px; align-items: center; }
+            .main-content { padding: 20px; padding-top: 10px; }
+        }
+    </style>
 </head>
 <body>
 
-  <!-- AUTH SCREEN -->
-  <div id="login-overlay">
-    <div class="login-box">
-      <h2 style="margin-bottom:20px">Admin Access</h2>
-      <input type="text" id="adm-u" class="login-input" placeholder="Username">
-      <input type="password" id="adm-p" class="login-input" placeholder="Password">
-      <button class="btn btn-primary" style="width:100%; padding:14px" onclick="login()">Login</button>
-    </div>
-  </div>
+    <!-- Toast Host -->
+    <div class="toast-container" id="toast-host"></div>
 
-  <!-- SIDEBAR -->
-  <div class="sidebar">
-    <div style="padding:15px; font-weight:800; font-size:18px;">SAUKI COMMAND</div>
-    <div class="nav-btn active" onclick="nav('home')" id="nav-home">📈 Overview</div>
-    <div class="nav-btn" onclick="nav('plans')" id="nav-plans">🏷️ Plans & Prices</div>
-    <div class="nav-btn" onclick="nav('agents')" id="nav-agents">👥 Resellers</div>
-    <div class="nav-btn" onclick="nav('tx')" id="nav-tx">🧾 Transactions</div>
-    <div class="nav-btn" onclick="nav('complaints')" id="nav-complaints">💬 Complaints</div>
-    <div class="nav-btn" onclick="nav('broadcast')" id="nav-broadcast">📢 Broadcast</div>
-    <div style="flex:1"></div>
-    <div class="nav-btn" onclick="logout()" style="color:var(--danger)">Logout</div>
-  </div>
-
-  <!-- MAIN CONTENT -->
-  <div class="main-content">
-    
-    <!-- 1. OVERVIEW -->
-    <div id="view-home">
-      <h1>Dashboard Overview</h1>
-      <div class="stats-row">
-        <div class="stat-card">
-          <div style="color:var(--text-sec)">Total Reseller Wallet Funds</div>
-          <div class="stat-val" id="stat-wallet">₦0.00</div>
-        </div>
-        <div class="stat-card">
-          <div style="color:var(--text-sec)">Total Successful Sales</div>
-          <div class="stat-val" id="stat-sales">₦0.00</div>
-        </div>
-      </div>
-      <div class="card">
-         <h2 style="font-size:18px; margin-top:0">Quick Actions</h2>
-         <button class="btn btn-primary" onclick="openManual()">+ Send Manual Order</button>
-         <button class="btn btn-glass" onclick="nav('broadcast')">Update Broadcast</button>
-      </div>
-    </div>
-
-    <!-- 2. PLANS & PRICING -->
-    <div id="view-plans" style="display:none">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
-        <h1>Plans & Pricing</h1>
-        <button class="btn btn-primary" onclick="openEditPlan()">+ Add New Plan</button>
-      </div>
-      <div class="card">
-        <table>
-          <thead>
-            <tr>
-              <th>Network</th>
-              <th>Plan Name</th>
-              <th>Standard Price</th>
-              <th style="color:var(--primary)">Reseller Price</th>
-              <th>API ID</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody id="plans-table"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- 3. AGENTS / RESELLERS -->
-    <div id="view-agents" style="display:none">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
-        <h1>Reseller Accounts</h1>
-        <input class="input-glass" style="width:250px; margin:0; background:#1c1c1e" id="search-agent" placeholder="Search Agent..." onchange="loadAgents()">
-      </div>
-      <div class="card">
-        <table>
-          <thead>
-            <tr>
-              <th>Full Name</th>
-              <th>Phone Number</th>
-              <th>Wallet Balance</th>
-              <th>Virtual Account Details</th>
-            </tr>
-          </thead>
-          <tbody id="agents-table"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- 4. TRANSACTIONS -->
-    <div id="view-tx" style="display:none">
-       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px">
-        <h1>Transactions</h1>
-        <div style="display:flex; gap:10px">
-            <input class="input-glass" id="search-tx" placeholder="Search Phone/Ref" style="margin:0; width:200px">
-            <button class="btn btn-glass" onclick="loadTx(true)">Search</button>
-            <button class="btn btn-glass" onclick="exportCsv()">Export CSV</button>
-            <button class="btn btn-primary" onclick="openManual()">+ Manual</button>
-        </div>
-      </div>
-      <div class="card">
-        <table>
-          <thead><tr><th>Date</th><th>Ref</th><th>Target</th><th>Plan</th><th>Channel</th><th>Status</th><th>Action</th></tr></thead>
-          <tbody id="tx-table"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- 5. COMPLAINTS -->
-    <div id="view-complaints" style="display:none">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
-            <h1>User Complaints</h1>
-            <button class="btn btn-glass" onclick="loadComplaints()">Refresh</button>
-        </div>
-        <div class="card">
-            <table>
-                <thead><tr><th>Date</th><th>Name</th><th>Phone</th><th>Message</th><th>Action</th></tr></thead>
-                <tbody id="complaints-table"></tbody>
-            </table>
+    <!-- Login Modal -->
+    <div class="modal-overlay open" id="login-modal" style="z-index: 200;">
+        <div class="modal-box glass" style="text-align: center;">
+            <div class="brand-icon" style="margin: 0 auto 20px; width: 48px; height: 48px;">
+                <i data-lucide="shield-check" color="white"></i>
+            </div>
+            <h2 style="margin-bottom: 5px;">Welcome Back</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 25px;">Authenticate to access the mainframe.</p>
+            <input type="text" id="adm-u" placeholder="Admin ID" style="margin-bottom: 10px; text-align: center;">
+            <input type="password" id="adm-p" placeholder="Passkey" style="margin-bottom: 20px; text-align: center;">
+            <button class="btn btn-primary w-full" onclick="adminLogin()">Unlock Dashboard</button>
         </div>
     </div>
 
-    <!-- 6. BROADCAST -->
-    <div id="view-broadcast" style="display:none">
-        <h1>System Broadcast</h1>
-        <div class="card">
-            <p style="color:var(--text-sec); margin-top:0">This message appears on the user's home screen. Leave empty to disable.</p>
-            <textarea id="broadcast-input" class="input-glass" placeholder="Type message here..."></textarea>
-            <button class="btn btn-primary" onclick="saveMessage()">Update Message</button>
+    <!-- Manual Order Modal -->
+    <div class="modal-overlay" id="manual-modal">
+        <div class="modal-box glass">
+            <div class="flex justify-between items-center" style="margin-bottom: 20px;">
+                <h3>Manual Dispatch</h3>
+                <button class="btn btn-icon btn-secondary" onclick="toggleModal('manual-modal', false)"><i data-lucide="x"></i></button>
+            </div>
+            <div class="flex flex-col gap-4">
+                <input id="m-phone" placeholder="Recipient Phone (080...)">
+                <select id="m-net" onchange="updatePlanList()">
+                    <option value="mtn">MTN</option>
+                    <option value="glo">Glo</option>
+                    <option value="airtel">Airtel</option>
+                    <option value="9mobile">9mobile</option>
+                </select>
+                <select id="m-plan"><option>Select Network First...</option></select>
+                <button class="btn btn-primary" onclick="sendManual()" style="margin-top: 10px;">
+                    <i data-lucide="send"></i> Dispatch Data
+                </button>
+            </div>
         </div>
     </div>
 
-  </div>
-
-  <!-- EDIT PLAN MODAL -->
-  <div id="edit-modal" class="modal-overlay">
-    <div class="modal-box">
-      <h2 style="margin-top:0">Manage Plan</h2>
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px">
-        <div><label>Plan ID</label><input id="p-id" class="input-glass"></div>
-        <div><label>Network</label><select id="p-net" class="input-glass" style="height:45px"><option value="mtn">MTN</option><option value="glo">Glo</option><option value="airtel">Airtel</option><option value="9mobile">9mobile</option></select></div>
-        <div style="grid-column: span 2"><label>Display Name</label><input id="p-name" class="input-glass"></div>
-        <div><label>User Price (₦)</label><input id="p-price" class="input-glass" type="number"></div>
-        <div><label style="color:var(--primary)">Reseller Price (₦)</label><input id="p-res-price" class="input-glass" type="number" style="border-color:var(--primary)"></div>
-        <div style="grid-column: span 2"><label>API Plan ID (Amigo)</label><input id="p-api" class="input-glass"></div>
-      </div>
-      <div style="display:flex; gap:10px; margin-top:20px">
-        <button class="btn btn-primary" style="flex:1" onclick="savePlan()">Save Plan</button>
-        <button class="btn btn-glass" onclick="document.getElementById('edit-modal').style.display='none'">Cancel</button>
-      </div>
+    <!-- Edit Plan Modal -->
+    <div class="modal-overlay" id="edit-modal">
+        <div class="modal-box glass">
+            <div class="flex justify-between items-center" style="margin-bottom: 20px;">
+                <h3 id="form-title">Configure Plan</h3>
+                <button class="btn btn-icon btn-secondary" onclick="toggleModal('edit-modal', false)"><i data-lucide="x"></i></button>
+            </div>
+            <div class="flex flex-col gap-4">
+                <input id="p-id" placeholder="Internal ID (e.g. mtn-1gb)">
+                <div class="flex gap-2">
+                    <select id="p-net"><option value="mtn">MTN</option><option value="glo">Glo</option><option value="airtel">Airtel</option></select>
+                    <input id="p-price" type="number" placeholder="Price (₦)">
+                </div>
+                <input id="p-name" placeholder="Display Name (e.g. 1GB SME)">
+                <input id="p-api" placeholder="Provider API ID">
+                <button class="btn btn-primary" onclick="savePlan()">Save Configuration</button>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <!-- MANUAL ORDER MODAL -->
-  <div id="manual-modal" class="modal-overlay">
-    <div class="modal-box">
-      <h2 style="margin-top:0">Send Manual Order</h2>
-      <label>Phone Number</label>
-      <input id="m-phone" class="input-glass" placeholder="080...">
-      <label>Network</label>
-      <select id="m-net" class="input-glass" style="height:45px" onchange="updateManualPlans()"><option value="mtn">MTN</option><option value="glo">Glo</option><option value="airtel">Airtel</option><option value="9mobile">9mobile</option></select>
-      <label>Plan</label>
-      <select id="m-plan" class="input-glass" style="height:45px"><option>Select Network First</option></select>
-      
-      <div style="display:flex; gap:10px; margin-top:20px">
-        <button class="btn btn-success" style="flex:1" onclick="sendManual()">Send Data</button>
-        <button class="btn btn-glass" onclick="document.getElementById('manual-modal').style.display='none'">Cancel</button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    let auth = '';
-    let allPlans = [];
-    let currentTxData = [];
-
-    function login() {
-        const u = document.getElementById('adm-u').value;
-        const p = document.getElementById('adm-p').value;
-        auth = 'Basic ' + btoa(u + ':' + p);
-        fetch('/api/admin?action=check', { headers: { 'Authorization': auth } })
-        .then(r => { 
-            if(r.ok) { 
-                document.getElementById('login-overlay').style.display = 'none'; 
-                init(); 
-            } else alert("Invalid Login"); 
-        }).catch(() => alert("Connection Error"));
-    }
-    
-    function logout() { location.reload(); }
-
-    function nav(tab) {
-        document.querySelectorAll('.nav-btn').forEach(e => e.classList.remove('active'));
-        document.getElementById(`nav-${tab}`).classList.add('active');
-        ['home','plans','agents','tx','complaints','broadcast'].forEach(t => document.getElementById(`view-${t}`).style.display = 'none');
-        document.getElementById(`view-${tab}`).style.display = 'block';
-        if(tab==='tx') loadTx();
-        if(tab==='complaints') loadComplaints();
-        if(tab==='broadcast') loadMessage();
-    }
-
-    function init() { loadStats(); loadPlans(); loadAgents(); loadTx(); }
-
-    async function api(url, method='GET', body) {
-        const opts = { method, headers: { 'Authorization': auth, 'Content-Type': 'application/json' } };
-        if(body) opts.body = JSON.stringify(body);
-        return fetch(url, opts).then(r => r.json());
-    }
-
-    // --- LOADERS ---
-    async function loadStats() {
-        const d = await api('/api/admin?action=stats');
-        document.getElementById('stat-wallet').innerText = '₦' + (d.agent_wallet_balance || '0.00');
-        document.getElementById('stat-sales').innerText = '₦' + (d.total_sales || '0.00');
-    }
-
-    async function loadPlans() {
-        allPlans = await fetch('/api/plans').then(r => r.json());
-        document.getElementById('plans-table').innerHTML = allPlans.map(p => `
-            <tr>
-                <td style="text-transform:uppercase; font-weight:bold">${p.network}</td>
-                <td>${p.name}</td>
-                <td>₦${p.price}</td>
-                <td style="color:var(--primary); font-weight:bold">₦${p.reseller_price || p.price}</td>
-                <td style="font-family:monospace; color:#666">${p.plan_id_api}</td>
-                <td>
-                    <button class="btn btn-glass" style="padding:4px 10px" onclick='openEditPlan(${JSON.stringify(p)})'>Edit</button>
-                    <button class="btn btn-danger" style="padding:4px 10px" onclick="delPlan('${p.id}')">Del</button>
-                </td>
-            </tr>
-        `).join('');
-    }
-
-    async function loadAgents() {
-        const q = document.getElementById('search-agent').value;
-        let url = '/api/admin?action=agents';
-        if(q) url += `&search=${q}`;
-        const d = await api(url);
-        document.getElementById('agents-table').innerHTML = d.map(a => `
-            <tr>
-                <td>${a.full_name}</td>
-                <td>${a.phone_number}</td>
-                <td style="font-weight:bold">₦${a.wallet_balance}</td>
-                <td>
-                    <div style="font-size:12px; color:#888">${a.virtual_account_bank}</div>
-                    <div style="font-family:monospace">${a.virtual_account_number}</div>
-                </td>
-            </tr>
-        `).join('');
-    }
-
-    async function loadTx(isSearch=false) {
-        let url = '/api/admin?action=transactions';
-        if(isSearch) {
-             const q = document.getElementById('search-tx').value;
-             if(q) url += `&search=${q}`;
-        }
-        const d = await api(url);
-        currentTxData = d;
-        document.getElementById('tx-table').innerHTML = d.map(t => {
-            let badge = 'badge-web';
-            if(t.channel === 'agent') badge = 'badge-agent';
-            if(t.channel === 'manual') badge = 'badge-manual';
+    <!-- Main App UI -->
+    <div class="app-container glass hidden" id="app-ui">
+        <!-- Sidebar -->
+        <aside class="sidebar glass" id="sidebar">
+            <div class="brand">
+                <div class="brand-icon"><i data-lucide="zap" color="white"></i></div>
+                <span>Sauki Pro</span>
+            </div>
             
-            return `<tr>
-                <td style="font-size:12px; color:#666">${new Date(t.created_at).toLocaleString()}</td>
-                <td style="font-family:monospace">${t.reference}</td>
-                <td>${t.phone_number}</td>
-                <td>${t.plan_id}</td>
-                <td><span class="badge ${badge}">${t.channel || 'web'}</span></td>
-                <td class="${t.status === 'success' ? 'badge-success' : 'btn-danger'}" style="${t.status !== 'success'?'background:none;color:#ff453a':''}">${t.status}</td>
-                <td>${t.status !== 'success' ? `<button class="btn btn-glass" style="color:var(--warning)" onclick="retryTx('${t.id}')">Retry ↺</button>` : '-'}</td>
-            </tr>`;
-        }).join('');
-    }
+            <nav style="flex: 1;">
+                <button class="nav-item active" onclick="showTab('plans', this)">
+                    <i data-lucide="package"></i> Data Plans
+                </button>
+                <button class="nav-item" onclick="showTab('tx', this)">
+                    <i data-lucide="activity"></i> Transactions
+                </button>
+                <button class="nav-item" onclick="showTab('complaints', this)">
+                    <i data-lucide="message-square-warning"></i> Complaints
+                </button>
+                <button class="nav-item" onclick="showTab('msg', this)">
+                    <i data-lucide="megaphone"></i> Broadcast
+                </button>
+            </nav>
 
-    async function loadComplaints() {
-        const d = await api('/api/admin?action=complaints');
-        document.getElementById('complaints-table').innerHTML = d.length ? d.map(c => `
-            <tr>
-                <td style="font-size:12px; color:#666">${new Date(c.created_at).toLocaleString()}</td>
-                <td>${c.name || 'Anon'}</td>
-                <td>${c.phone}</td>
-                <td style="font-size:13px; max-width:250px">${c.message}</td>
-                <td><button class="btn btn-danger" style="padding:4px 10px" onclick="delComplaint('${c.id}')">Resolve</button></td>
-            </tr>
-        `).join('') : '<tr><td colspan="5" style="text-align:center; padding:20px; color:#666">No complaints found</td></tr>';
-    }
-    
-    async function loadMessage() {
-        const r = await fetch('/api/status').then(res=>res.json());
-        if(r.message) document.getElementById('broadcast-input').value = r.message;
-    }
+            <button class="nav-item" onclick="logout()" style="color: var(--accent-danger);">
+                <i data-lucide="log-out"></i> Disconnect
+            </button>
+        </aside>
 
-    // --- ACTIONS ---
-    function openEditPlan(p) {
-        document.getElementById('edit-modal').style.display = 'flex';
-        if(p) {
-            document.getElementById('p-id').value = p.id;
-            document.getElementById('p-net').value = p.network;
-            document.getElementById('p-name').value = p.name;
-            document.getElementById('p-price').value = p.price;
-            document.getElementById('p-res-price').value = p.reseller_price;
-            document.getElementById('p-api').value = p.plan_id_api;
-        } else {
-             document.getElementById('p-id').value = '';
-             document.getElementById('p-name').value = '';
-             document.getElementById('p-price').value = '';
-             document.getElementById('p-res-price').value = '';
-             document.getElementById('p-api').value = '';
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Mobile Header -->
+            <div class="mobile-nav hidden" style="display: none;" id="mobile-header">
+                <div class="brand-icon"><i data-lucide="zap" color="white"></i></div>
+                <button class="btn btn-icon btn-secondary" onclick="document.getElementById('sidebar').classList.toggle('active')">
+                    <i data-lucide="menu"></i>
+                </button>
+            </div>
+
+            <!-- PLANS TAB -->
+            <section id="tab-plans">
+                <div class="header">
+                    <div>
+                        <h1>Plan Management</h1>
+                        <div class="subtitle">Configure pricing and API mapping</div>
+                    </div>
+                    <button class="btn btn-primary" onclick="openEdit()">
+                        <i data-lucide="plus"></i> New Plan
+                    </button>
+                </div>
+                
+                <div class="table-container glass">
+                    <table>
+                        <thead>
+                            <tr><th>Network</th><th>Name</th><th>Price</th><th>API ID</th><th style="text-align:right">Actions</th></tr>
+                        </thead>
+                        <tbody id="plans-table"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- TRANSACTIONS TAB -->
+            <section id="tab-tx" class="hidden">
+                <div class="header">
+                    <div>
+                        <h1>Transactions</h1>
+                        <div class="subtitle">Live feed of all data processing</div>
+                    </div>
+                    <div class="flex gap-2">
+                         <button class="btn btn-secondary" onclick="openManual()">
+                            <i data-lucide="zap"></i> Manual
+                        </button>
+                         <button class="btn btn-secondary" onclick="exportCsv()">
+                            <i data-lucide="download"></i> CSV
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card glass flex gap-2" style="padding: 15px;">
+                    <div style="position:relative; flex:1">
+                        <i data-lucide="search" style="position:absolute; left:12px; top:12px; color:var(--text-secondary); width:18px;"></i>
+                        <input id="search-tx" placeholder="Search reference or phone..." style="padding-left: 40px; border:none; background: rgba(255,255,255,0.05);">
+                    </div>
+                    <button class="btn btn-primary" onclick="loadTx(true)">Search</button>
+                    <button class="btn btn-secondary btn-icon" onclick="loadTx()"><i data-lucide="rotate-ccw"></i></button>
+                </div>
+
+                <div class="table-container glass">
+                    <table>
+                        <thead>
+                            <tr><th>Time</th><th>Ref</th><th>Phone</th><th>Plan</th><th>Status</th><th style="text-align:right">Action</th></tr>
+                        </thead>
+                        <tbody id="tx-table"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- COMPLAINTS TAB -->
+            <section id="tab-complaints" class="hidden">
+                <div class="header">
+                    <div>
+                        <h1>User Reports</h1>
+                        <div class="subtitle">Inbox of user submitted issues</div>
+                    </div>
+                    <button class="btn btn-secondary btn-icon" onclick="loadComplaints()"><i data-lucide="rotate-ccw"></i></button>
+                </div>
+                <div class="table-container glass">
+                    <table>
+                        <thead>
+                            <tr><th>Date</th><th>User</th><th>Phone</th><th>Message</th><th style="text-align:right">Resolve</th></tr>
+                        </thead>
+                        <tbody id="complaints-table"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- BROADCAST TAB -->
+            <section id="tab-msg" class="hidden">
+                <div class="header">
+                    <div>
+                        <h1>System Broadcast</h1>
+                        <div class="subtitle">Push global announcements to user dashboards</div>
+                    </div>
+                </div>
+                <div class="card glass">
+                    <label style="display:block; margin-bottom:10px; color:var(--text-secondary); font-size:0.9rem;">Announcement Message</label>
+                    <textarea id="broadcast-input" rows="5" placeholder="Type message here... (Leave empty to disable)"></textarea>
+                    <div class="flex justify-between items-center" style="margin-top: 20px;">
+                        <span style="font-size:0.8rem; color:var(--text-tertiary);">Visible to all users immediately</span>
+                        <button class="btn btn-primary" onclick="saveMessage()">
+                            <i data-lucide="save"></i> Publish Update
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+        // Init Icons
+        lucide.createIcons();
+
+        // State
+        let authHeader = '';
+        let allPlans = [];
+        let currentTxData = [];
+
+        // --- UTILS ---
+        function toast(msg, type = 'info') {
+            const host = document.getElementById('toast-host');
+            const el = document.createElement('div');
+            el.className = 'toast';
+            let icon = type === 'success' ? 'check-circle' : (type === 'error' ? 'alert-circle' : 'info');
+            let color = type === 'success' ? 'var(--accent-success)' : (type === 'error' ? 'var(--accent-danger)' : 'white');
+            
+            el.innerHTML = `<i data-lucide="${icon}" style="color:${color}; width:18px;"></i> ${msg}`;
+            host.appendChild(el);
+            lucide.createIcons();
+            setTimeout(() => {
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(-10px)';
+                setTimeout(() => el.remove(), 300);
+            }, 3000);
         }
-    }
 
-    async function savePlan() {
-        const body = {
-            action: 'create',
-            id: document.getElementById('p-id').value,
-            network: document.getElementById('p-net').value,
-            name: document.getElementById('p-name').value,
-            price: document.getElementById('p-price').value,
-            reseller_price: document.getElementById('p-res-price').value,
-            plan_id_api: document.getElementById('p-api').value
-        };
-        await api('/api/plans', 'POST', body);
-        document.getElementById('edit-modal').style.display = 'none';
-        loadPlans();
-    }
+        function toggleModal(id, show) {
+            const el = document.getElementById(id);
+            if(show) el.classList.add('open');
+            else el.classList.remove('open');
+        }
 
-    async function delPlan(id) { if(confirm("Delete plan?")) { await api('/api/plans', 'POST', { action: 'delete', id }); loadPlans(); } }
-    
-    async function retryTx(id) {
-        if(!confirm("Retry this transaction?")) return;
-        const res = await api('/api/admin', 'POST', { action: 'retry', id });
-        alert(res.success ? "Success" : "Failed: " + res.error);
-        loadTx();
-    }
-    
-    async function delComplaint(id) { if(confirm("Resolve complaint?")) { await api('/api/admin', 'POST', { action: 'delete_complaint', id }); loadComplaints(); } }
-    
-    async function saveMessage() {
-        const msg = document.getElementById('broadcast-input').value;
-        await api('/api/admin', 'POST', { action: 'save_message', message: msg });
-        alert("Broadcast Updated");
-    }
+        function renderLoading(cols = 5) {
+            return `<tr><td colspan="${cols}" style="text-align:center; padding:40px; color:var(--text-tertiary);">Loading Data...</td></tr>`;
+        }
 
-    // --- MANUAL ORDERS ---
-    function openManual() { document.getElementById('manual-modal').style.display = 'flex'; updateManualPlans(); }
-    
-    function updateManualPlans() {
-        const net = document.getElementById('m-net').value;
-        const f = allPlans.filter(p => p.network === net);
-        document.getElementById('m-plan').innerHTML = f.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-    }
-    
-    async function sendManual() {
-        const phone = document.getElementById('m-phone').value;
-        const net = document.getElementById('m-net').value;
-        const planId = document.getElementById('m-plan').value;
-        if(!phone || !planId) return alert("Fill all fields");
-        if(!confirm(`Send ${net} data to ${phone}?`)) return;
+        // --- AUTH ---
+        async function adminLogin() {
+            const u = document.getElementById('adm-u').value;
+            const p = document.getElementById('adm-p').value;
+            if(!u || !p) return toast('Please enter credentials', 'error');
+
+            const creds = 'Basic ' + btoa(u + ':' + p);
+            try {
+                const res = await fetch('/api/admin?action=check', { headers: { 'Authorization': creds } });
+                if(res.ok) {
+                    authHeader = creds;
+                    document.getElementById('login-modal').classList.remove('open');
+                    document.getElementById('app-ui').classList.remove('hidden');
+                    
+                    // Init Data
+                    loadPlans();
+                    loadMessage();
+                    
+                    // Check Mobile
+                    if(window.innerWidth <= 900) document.getElementById('mobile-header').style.display = 'flex';
+                } else { 
+                    toast("Access Denied: Invalid Credentials", 'error'); 
+                    document.getElementById('adm-p').value = '';
+                }
+            } catch(e) { toast("Connection Error", 'error'); }
+        }
+
+        function logout() {
+            authHeader = '';
+            document.getElementById('app-ui').classList.add('hidden');
+            toggleModal('login-modal', true);
+            document.getElementById('adm-u').value = '';
+            document.getElementById('adm-p').value = '';
+        }
+
+        // --- NAVIGATION ---
+        function showTab(t, btn) {
+            ['plans', 'tx', 'msg', 'complaints'].forEach(x => document.getElementById('tab-'+x).classList.add('hidden'));
+            document.getElementById('tab-' + t).classList.remove('hidden');
+            
+            // Sidebar Active State
+            if(btn) {
+                document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+                btn.classList.add('active');
+            }
+
+            // Close mobile sidebar if open
+            document.getElementById('sidebar').classList.remove('active');
+
+            if(t === 'tx') loadTx();
+            if(t === 'complaints') loadComplaints();
+        }
+
+        // --- PLANS ---
+        function openEdit(plan = null) {
+            toggleModal('edit-modal', true);
+            const title = document.getElementById('form-title');
+            if (plan) {
+                title.innerText = "Edit Configuration";
+                document.getElementById('p-id').value = plan.id;
+                document.getElementById('p-id').readOnly = true; 
+                document.getElementById('p-net').value = plan.network;
+                document.getElementById('p-name').value = plan.name;
+                document.getElementById('p-price').value = plan.price;
+                document.getElementById('p-api').value = plan.plan_id_api;
+            } else {
+                title.innerText = "New Configuration";
+                document.getElementById('p-id').value = "";
+                document.getElementById('p-id').readOnly = false;
+                document.getElementById('p-name').value = "";
+                document.getElementById('p-price').value = "";
+                document.getElementById('p-api').value = "";
+            }
+        }
+
+        async function loadPlans() {
+            document.getElementById('plans-table').innerHTML = renderLoading();
+            try {
+                const res = await fetch('/api/plans');
+                allPlans = await res.json();
+                const rows = allPlans.map(p => `
+                    <tr>
+                    <td><span class="badge badge-net">${p.network.toUpperCase()}</span></td>
+                    <td style="font-weight:500">${p.name}</td>
+                    <td>₦${p.price}</td>
+                    <td style="font-family:monospace; color:var(--text-secondary)">${p.plan_id_api}</td>
+                    <td style="text-align:right">
+                        <button class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem" onclick='openEdit(${JSON.stringify(p)})'>Edit</button>
+                        <button class="btn btn-danger" style="padding:6px 12px; font-size:0.8rem" onclick="deletePlan('${p.id}')">×</button>
+                    </td>
+                    </tr>
+                `).join('');
+                document.getElementById('plans-table').innerHTML = rows;
+            } catch(e) { console.error(e); }
+        }
+
+        async function savePlan() {
+            const body = {
+                action: 'create', 
+                id: document.getElementById('p-id').value,
+                network: document.getElementById('p-net').value,
+                name: document.getElementById('p-name').value,
+                price: document.getElementById('p-price').value,
+                plan_id_api: document.getElementById('p-api').value
+            };
+            await fetch('/api/plans', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': authHeader }, body: JSON.stringify(body) });
+            toggleModal('edit-modal', false);
+            toast('Plan Configuration Saved', 'success');
+            loadPlans();
+        }
+
+        async function deletePlan(id) {
+            if(!confirm("Are you sure you want to delete this plan?")) return;
+            await fetch('/api/plans', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': authHeader }, body: JSON.stringify({ action: 'delete', id }) });
+            loadPlans();
+            toast('Plan Deleted', 'success');
+        }
+
+        // --- TRANSACTIONS ---
+        async function loadTx(isSearch = false) {
+            const tbody = document.getElementById('tx-table');
+            tbody.innerHTML = renderLoading(6);
+            
+            let url = '/api/admin?action=transactions';
+            if(isSearch) {
+                const q = document.getElementById('search-tx').value;
+                if(q) url += `&search=${encodeURIComponent(q)}`;
+            }
+            
+            try {
+                const res = await fetch(url, { headers: { 'Authorization': authHeader } });
+                const data = await res.json();
+                if(data.error) return toast(data.error, 'error');
+                
+                currentTxData = data; 
+
+                const rows = data.map(t => {
+                    const isSuccess = t.status === 'success';
+                    const badgeClass = isSuccess ? 'badge-success' : 'badge-failed';
+                    const retryBtn = !isSuccess ? `<button class="btn btn-secondary" style="padding:4px 10px; font-size:0.75rem" onclick="retryTx('${t.id}')">Retry</button>` : '';
+                    
+                    return `
+                        <tr>
+                            <td style="font-size:0.8rem; color:var(--text-secondary)">${new Date(t.created_at).toLocaleString()}</td>
+                            <td style="font-family:monospace; font-size:0.8rem">${t.reference}</td>
+                            <td>${t.phone_number}</td>
+                            <td>${t.plan_id}</td>
+                            <td><span class="badge ${badgeClass}">${t.status}</span></td>
+                            <td style="text-align:right">${retryBtn}</td>
+                        </tr>`;
+                }).join('');
+                tbody.innerHTML = rows.length ? rows : '<tr><td colspan="6" style="text-align:center; padding:30px">No transactions found</td></tr>';
+            } catch(e) { tbody.innerHTML = '<tr><td colspan="6">Error loading data</td></tr>'; }
+        }
+
+        async function retryTx(id) {
+            if(!confirm("Retry this transaction?")) return;
+            const res = await fetch('/api/admin', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': authHeader }, body: JSON.stringify({ action: 'retry', id: id }) });
+            const data = await res.json();
+            if(data.success) { toast('Retry Initiated', 'success'); loadTx(); }
+            else toast('Retry Failed: ' + data.error, 'error');
+        }
         
-        const res = await api('/api/admin', 'POST', { action: 'manual', phone, network: net, plan_id: planId });
-        alert(res.success ? "Sent!" : "Failed: " + res.error);
-        if(res.success) { document.getElementById('manual-modal').style.display='none'; loadTx(); }
-    }
-    
-    function exportCsv() {
-        if(!currentTxData.length) return alert("No data");
-        let csv = "Date,Ref,Phone,Plan,Status,Channel\n" + currentTxData.map(t => `${t.created_at},${t.reference},${t.phone_number},${t.plan_id},${t.status},${t.channel}`).join('\n');
-        const url = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
-        const a = document.createElement('a'); a.href=url; a.download='transactions.csv'; a.click();
-    }
-  </script>
+        function exportCsv() {
+            if(!currentTxData.length) return toast("No data to export", 'info');
+            const headers = ["Date", "Reference", "Phone", "Plan", "Status", "Network"];
+            const rows = currentTxData.map(t => [
+                new Date(t.created_at).toLocaleString().replace(/,/g, ''),
+                t.reference,
+                t.phone_number,
+                t.plan_id,
+                t.status,
+                t.network
+            ]);
+            
+            let csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+            const link = document.createElement("a");
+            link.href = encodeURI(csvContent);
+            link.download = "sauki_transactions.csv";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // --- COMPLAINTS ---
+        async function loadComplaints() {
+            const tbody = document.getElementById('complaints-table');
+            tbody.innerHTML = renderLoading();
+            
+            const res = await fetch('/api/admin?action=complaints', { headers: { 'Authorization': authHeader } });
+            const data = await res.json();
+            const rows = data.map(c => `
+                <tr>
+                    <td style="font-size:0.8rem; color:var(--text-secondary)">${new Date(c.created_at).toLocaleDateString()}</td>
+                    <td>${c.name || 'Anonymous'}</td>
+                    <td><a href="tel:${c.phone}" style="color:var(--accent-primary); text-decoration:none">${c.phone}</a></td>
+                    <td style="max-width:300px; white-space:pre-wrap; color:var(--text-secondary)">${c.message}</td>
+                    <td style="text-align:right">
+                        <button class="btn btn-danger" style="padding:6px 12px; font-size:0.75rem" onclick="deleteComplaint('${c.id}')">Resolve</button>
+                    </td>
+                </tr>
+            `).join('');
+            tbody.innerHTML = rows.length ? rows : '<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--text-tertiary)">All caught up! No complaints.</td></tr>';
+        }
+
+        async function deleteComplaint(id) {
+            if(!confirm("Mark resolved?")) return;
+            await fetch('/api/admin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
+                body: JSON.stringify({ action: 'delete_complaint', id })
+            });
+            loadComplaints();
+            toast('Complaint Resolved', 'success');
+        }
+
+        // --- BROADCAST & MANUAL ---
+        async function loadMessage() {
+            const res = await fetch('/api/status');
+            const data = await res.json();
+            if(data.message) document.getElementById('broadcast-input').value = data.message;
+        }
+
+        async function saveMessage() {
+            const msg = document.getElementById('broadcast-input').value;
+            await fetch('/api/admin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
+                body: JSON.stringify({ action: 'save_message', message: msg })
+            });
+            toast('Broadcast Updated', 'success');
+        }
+
+        function openManual() { toggleModal('manual-modal', true); updatePlanList(); }
+        
+        function updatePlanList() { 
+            const net = document.getElementById('m-net').value; 
+            const filtered = allPlans.filter(p => p.network === net); 
+            const select = document.getElementById('m-plan');
+            if(filtered.length === 0) {
+                select.innerHTML = '<option>No plans found</option>';
+            } else {
+                select.innerHTML = filtered.map(p => `<option value="${p.id}">${p.name} (₦${p.price})</option>`).join('');
+            }
+        }
+
+        async function sendManual() {
+            const phone = document.getElementById('m-phone').value; 
+            const net = document.getElementById('m-net').value; 
+            const pid = document.getElementById('m-plan').value;
+            
+            if(!phone || !pid) return toast("Please fill all fields", 'error');
+            
+            // Simple visual feedback
+            const btn = document.querySelector('#manual-modal .btn-primary');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = 'Dispatching...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/admin', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': authHeader }, body: JSON.stringify({ action: 'manual', phone, network: net, plan_id: pid }) });
+                const d = await res.json();
+                
+                if(d.success) {
+                    toast("Data Dispatched Successfully", 'success');
+                    toggleModal('manual-modal', false);
+                    if(document.getElementById('tab-tx').style.display !== 'none') loadTx();
+                } else {
+                    toast("Failed: " + d.error, 'error');
+                }
+            } catch(e) { toast("Connection Error", 'error'); }
+            
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    </script>
 </body>
 </html>
