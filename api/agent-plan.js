@@ -3,23 +3,25 @@ const { Client } = pg;
 const CONNECTION_STRING = process.env.POSTGRES_URL;
 
 export default async function handler(req, res) {
-    // Only allow GET requests
-    if (req.method !== 'GET') return res.status(405).json({error: 'Method Not Allowed'});
-
     const client = new Client({ connectionString: CONNECTION_STRING, ssl: { rejectUnauthorized: false } });
     await client.connect();
 
     try {
         const { network } = req.query;
         
-        // SELECT 'reseller_price' as 'price'
+        // Logic: If reseller_price is > 0, use it. Otherwise use normal price.
         let query = `
-            SELECT id, network, name, reseller_price as price, plan_id_api 
+            SELECT id, network, name, 
+            CASE 
+                WHEN reseller_price > 0 THEN reseller_price 
+                ELSE price 
+            END as price, 
+            plan_id_api 
             FROM plans
         `;
         
         if (network) query += ` WHERE network = '${network}'`;
-        query += ' ORDER BY reseller_price ASC';
+        query += ' ORDER BY price ASC';
         
         const result = await client.query(query);
         await client.end();
