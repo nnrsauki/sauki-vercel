@@ -25,34 +25,29 @@ export default async function handler(req, res) {
         try {
             await client.connect();
 
-            // 3. Find the EXISTING pending transaction using the reference (tx_ref)
-            // This assumes your website created the record with status 'pending' before the user paid.
+            // ==========================================================
+            // PATH A: CHECK FOR PAY-AS-YOU-GO (WEBSITE TRANSACTION)
+            // ==========================================================
+            // We search your transactions table for this reference
             const result = await client.query('SELECT * FROM transactions WHERE reference = $1', [data.tx_ref]);
             
             if (result.rows.length > 0) {
+                // --- IT IS A WEBSITE ORDER ---
                 const transaction = result.rows[0];
 
-                // 4. Check if we actually need to deliver data (Idempotency)
-                // If status is NOT 'success', we assume it's pending/failed and needs delivery.
+                // Idempotency: Only process if not already success
                 if (transaction.status !== 'success' && transaction.status !== 'successful') {
-                    
-                    console.log(`[Webhook] Found Pending Order: ${data.tx_ref}. Processing...`);
+                    console.log(`[Webhook] Processing Website Order: ${data.tx_ref}`);
 
-                    // 5. Extract data from YOUR DATABASE (No meta needed)
                     const { plan_id, phone_number, network } = transaction;
-
-                    // 6. Fetch Plan Details to get the api ID
                     const planRes = await client.query('SELECT * FROM plans WHERE id = $1', [plan_id]);
                     
                     if (planRes.rows.length > 0) {
                         const plan = planRes.rows[0];
                         const NET_MAP = { 'mtn': 1, 'glo': 2, 'airtel': 3, '9mobile': 4 };
-                        
-                        // Use network from transaction or plan details
                         const netKey = (network || plan.network || '').toLowerCase();
                         const networkInt = NET_MAP[netKey] || 1;
 
-                        // 7. Send to Amigo
                         const options = {
                             method: 'POST',
                             headers: { 
@@ -64,38 +59,62 @@ export default async function handler(req, res) {
                                 network: networkInt, 
                                 mobile_number: phone_number, 
                                 plan: plan.plan_id_api, 
-                                Ported_number: true // Defaulting to true as meta is removed. 
+                                Ported_number: true 
                             })
                         };
                         
                         if (PROXY_URL) options.agent = new HttpsProxyAgent(PROXY_URL);
 
-                        console.log(`[Webhook] Calling Amigo for ${data.tx_ref}...`);
                         const amigoRes = await fetch('https://amigo.ng/api/data/', options);
                         const amigoResult = await amigoRes.json();
-                        
                         const isSuccess = (amigoResult.success === true || amigoResult.Status === 'successful');
                         const newStatus = isSuccess ? 'success' : 'failed';
 
-                        // 8. UPDATE the existing record instead of inserting a new one
                         await client.query(
-                            `UPDATE transactions 
-                             SET status = $1, api_response = $2
-                             WHERE reference = $3`,
+                            `UPDATE transactions SET status = $1, api_response = $2 WHERE reference = $3`,
                             [newStatus, JSON.stringify(amigoResult), data.tx_ref]
                         );
-
-                        console.log(`[Webhook] Success: Updated ${data.tx_ref} to ${newStatus}`);
-                    } else {
-                        console.error(`[Webhook] Error: Plan ID ${plan_id} not found in DB`);
+                        console.log(`[Webhook] Website Order Updated: ${newStatus}`);
                     }
                 } else {
-                    console.log(`[Webhook] Ignored: ${data.tx_ref} is already successful.`);
+                    console.log(`[Webhook] Skipped Website Order ${data.tx_ref} (Already Success)`);
                 }
             } else {
-                console.log(`[Webhook] Error: Transaction ${data.tx_ref} not found in DB.`);
-                // Since meta is removed, we cannot create a new order here. 
-                // We assume the order was created on the frontend.
+                // ==========================================================
+                // PATH B: CHECK FOR AGENT WALLET FUNDING
+                // ==========================================================
+                // If the reference was NOT found in 'transactions', it means it's likely a direct transfer to a Virtual Account.
+                
+                // We identify the Agent by matching the Virtual Account Number OR Phone Number
+                // Flutterwave sends the receiving account in data.account.nuban or data.account_number
+                
+                const agentRes = await client.query(
+                    'SELECT * FROM agents WHERE virtual_account_number = $1 OR phone_number = $2', 
+                    [data.account?.nuban || data.account_number, data.customer?.phone_number]
+                );
+
+                if (agentRes.rows.length > 0) {
+                    const agent = agentRes.rows[0];
+                    const amount = data.amount;
+                    const ref = data.tx_ref || String(data.id);
+
+                    // Idempotency: Check if we already funded this specific transfer to avoid double crediting
+                    const logCheck = await client.query('SELECT id FROM funding_logs WHERE reference = $1', [ref]);
+                    
+                    if (logCheck.rows.length === 0) {
+                        console.log(`[Webhook] Funding Agent: ${agent.full_name} (+₦${amount})`);
+                        
+                        // 1. Fund Wallet
+                        await client.query('UPDATE agents SET wallet_balance = wallet_balance + $1 WHERE id = $2', [amount, agent.id]);
+                        
+                        // 2. Log Transaction so we don't fund it again
+                        await client.query('INSERT INTO funding_logs (reference, agent_phone, amount) VALUES ($1, $2, $3)', [ref, agent.phone_number, amount]);
+                    } else {
+                        console.log(`[Webhook] Duplicate Agent Funding skipped: ${ref}`);
+                    }
+                } else {
+                    console.log(`[Webhook] Unknown Transaction: ${data.tx_ref} (Not website order, Not agent funding)`);
+                }
             }
         } catch (e) {
             console.error("[Webhook] Critical Error:", e);
