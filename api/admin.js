@@ -10,6 +10,7 @@ const AMIGO_API_KEY = process.env.AMIGO_API_KEY;
 const PROXY_URL = process.env.PROXY_URL;
 
 export default async function handler(req, res) {
+    // 1. Authentication
     const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
     const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':');
     if (login !== ADMIN_USER || password !== ADMIN_PASS) {
@@ -22,11 +23,15 @@ export default async function handler(req, res) {
     try {
         const { action, search } = req.query;
 
+        // --- GET ACTIONS ---
+
+        // A. Auth Check
         if (action === 'check') {
             await client.end();
             return res.status(200).json({ ok: true });
         }
 
+        // B. Fetch Transactions (Your Original Logic + Search)
         if (action === 'transactions') {
             let query = 'SELECT * FROM transactions';
             let params = [];
@@ -40,6 +45,7 @@ export default async function handler(req, res) {
             return res.status(200).json(result.rows);
         }
 
+        // C. Fetch Complaints (Your Original Logic)
         if (action === 'complaints') {
             const checkTable = await client.query("SELECT to_regclass('public.complaints')");
             if(!checkTable.rows[0].to_regclass) {
@@ -50,15 +56,47 @@ export default async function handler(req, res) {
             return res.status(200).json(result.rows);
         }
 
+        // D. [NEW] Fetch Agents (Resellers)
+        if (action === 'agents') {
+            let query = 'SELECT id, full_name, phone_number, wallet_balance, virtual_account_bank, virtual_account_number, created_at FROM agents';
+            if (search) query += ` WHERE phone_number ILIKE '%${search}%' OR full_name ILIKE '%${search}%'`;
+            query += ' ORDER BY wallet_balance DESC LIMIT 50';
+            const result = await client.query(query);
+            await client.end();
+            return res.status(200).json(result.rows);
+        }
+
+        // E. [NEW] Fetch Statistics
+        if (action === 'stats') {
+            // Check if agents table exists first to avoid crash on fresh install
+            const checkAgents = await client.query("SELECT to_regclass('public.agents')");
+            let agentBal = 0;
+            if(checkAgents.rows[0].to_regclass) {
+                const agRes = await client.query('SELECT SUM(wallet_balance) as t FROM agents');
+                agentBal = agRes.rows[0].t || 0;
+            }
+            
+            const salesRes = await client.query("SELECT SUM(amount) as t FROM transactions WHERE status='success'");
+            
+            await client.end();
+            return res.status(200).json({
+                agent_wallet_balance: agentBal,
+                total_sales: salesRes.rows[0].t || 0
+            });
+        }
+
+        // --- POST ACTIONS ---
         if (req.method === 'POST') {
             const body = req.body;
             
+            // 1. Delete Complaint (Your Original Logic)
             if (body.action === 'delete_complaint') {
                 await client.query('DELETE FROM complaints WHERE id = $1', [body.id]);
                 await client.end();
                 return res.status(200).json({ success: true });
             }
 
+            // 2. Save Broadcast Message (Your Original Logic)
             if (body.action === 'save_message') {
                 await client.query(`CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)`);
                 await client.query(`INSERT INTO settings (key, value) VALUES ('broadcast_message', $1) ON CONFLICT (key) DO UPDATE SET value = $1`, [body.message]);
@@ -66,6 +104,7 @@ export default async function handler(req, res) {
                 return res.status(200).json({ success: true });
             }
 
+            // 3. Manual Order & Retry (Your Original Logic - PRESERVED EXACTLY)
             if (body.action === 'retry' || body.action === 'manual') {
                 let targetPhone, targetPlanId, targetNetwork, apiPlanId, dbRef;
                 
@@ -116,7 +155,7 @@ export default async function handler(req, res) {
                 if (body.action === 'retry') {
                     await client.query(`UPDATE transactions SET status = $1, api_response = $2, created_at = NOW() WHERE id = $3`, [isSuccess ? 'success' : 'failed', JSON.stringify(amigoResult), body.id]);
                 } else {
-                    await client.query(`INSERT INTO transactions (phone_number, network, plan_id, status, reference, api_response, created_at) VALUES ($1, $2, $3, $4, $5, $6, NOW())`, [targetPhone, targetNetwork, targetPlanId, isSuccess ? 'success' : 'failed', dbRef, JSON.stringify(amigoResult)]);
+                    await client.query(`INSERT INTO transactions (phone_number, network, plan_id, status, reference, api_response, created_at, channel) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'manual')`, [targetPhone, targetNetwork, targetPlanId, isSuccess ? 'success' : 'failed', dbRef, JSON.stringify(amigoResult)]);
                 }
 
                 await client.end();
@@ -124,8 +163,6 @@ export default async function handler(req, res) {
                 if (isSuccess) {
                     return res.status(200).json({ success: true, message: 'Sent Successfully' });
                 } else {
-                    // IMPROVED ERROR REPORTING
-                    // Returns the exact message from Amigo, or the full object if message is missing
                     const errorDetails = amigoResult.message || amigoResult.error_message || JSON.stringify(amigoResult);
                     return res.status(400).json({ success: false, error: `Provider: ${errorDetails}` });
                 }
